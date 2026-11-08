@@ -61,10 +61,10 @@ document.getElementById("teamsel").addEventListener("click", (e) => {
   else route(true);
 });
 
-// teletext: type a three digit page number
+// type a three digit page number to jump there
 let digits = "";
 document.addEventListener("keydown", (e) => {
-  if (!prefs.ttx || /input|textarea|select/i.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/input|textarea|select/i.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
   if (!/^\d$/.test(e.key)) return;
   digits = (digits + e.key).slice(-3);
   document.querySelector(".logo").dataset.page = "P" + digits.padEnd(3, "-");

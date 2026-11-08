@@ -4,7 +4,6 @@ const PREFS_KEY = "rm:prefs";
 const DEFAULTS = {
   team: "men",
   theme: "auto",      // auto | light | dark | amoled
-  ttx: false,         // teletext mode
   spoilers: false,    // hide scores until asked
   alerts: false,      // browser notifications
   beep: true,
@@ -37,7 +36,6 @@ export function applyTheme() {
   let t = prefs.theme;
   if (t === "auto") t = matchMedia("(prefers-color-scheme: dark)").matches ? "amoled" : "light";
   document.documentElement.dataset.theme = t;
-  document.documentElement.classList.toggle("ttx", !!prefs.ttx);
 }
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => prefs.theme === "auto" && applyTheme());
 
