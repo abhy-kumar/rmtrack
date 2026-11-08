@@ -1,9 +1,9 @@
 import {
   api, staticJson, prefs, savePrefs, store, applyTheme, h, html, raw, esc,
   when, until, ago, hhmm, day, userTz, inSpain, rt, comp, flash,
-} from "./core.js";
-import { live, beep } from "./alerts.js";
-import { shotMap, momentum, territory, playerMap } from "./maps.js";
+} from "./core.js?v=4";
+import { live, beep } from "./alerts.js?v=4";
+import { shotMap, momentum, territory, playerMap } from "./maps.js?v=4";
 
 const TEAM_NAMES = { men: "Real Madrid", women: "Real Madrid Femenino", castilla: "Real Madrid Castilla" };
 const TEAM_IDS = { men: "86", women: "21128", castilla: "7000" };

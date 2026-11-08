@@ -1,6 +1,6 @@
-import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz } from "./core.js";
-import { startWatching, onLive } from "./alerts.js";
-import * as v from "./views.js";
+import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz } from "./core.js?v=4";
+import { startWatching, onLive } from "./alerts.js?v=4";
+import * as v from "./views.js?v=4";
 
 const main = document.getElementById("main");
 const PAGES = { "100": "#/", "200": "#/fixtures", "300": "#/table", "400": "#/news", "500": "#/squad", "600": "#/ratings", "700": "#/settings" };
