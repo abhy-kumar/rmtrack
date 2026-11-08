@@ -25,6 +25,19 @@ OEMBED = "https://publish.twitter.com/oembed"
 TAG = re.compile(r"<[^>]+>")
 MAX_AGE_DAYS = 10
 
+# the basketball section shares the club name; we only want football
+NOT_FOOTBALL = re.compile(
+    r"\b(baloncesto|basket|basketball|euroliga|euroleague|euroligue|liga endesa|acb|nba|canasta|"
+    r"copa del rey de baloncesto|supercopa endesa|movistar arena|wizink|llull|tavares|campazzo|"
+    r"hezonja|scariolo)\b",
+    re.I,
+)
+
+
+def _football(it):
+    text = " ".join(filter(None, (it.get("title"), it.get("summary"), it.get("title_en"))))
+    return not NOT_FOOTBALL.search(text)
+
 
 def _iso(dt):
     if dt is None:
@@ -165,7 +178,7 @@ async def collect(team_key, extra_handles=(), extra_names=()):
             continue
         for it in res:
             key = re.sub(r"\W+", "", it["title"].lower())[:80]
-            if not it["title"] or key in seen:
+            if not it["title"] or key in seen or not _football(it):
                 continue
             if it["published"]:
                 try:
@@ -185,6 +198,7 @@ async def collect(team_key, extra_handles=(), extra_names=()):
         it["lang"] = it["lang"] or lang
         if en and en.strip().lower() != it["title"].strip().lower():
             it["title_en"] = en
+    items = [i for i in items if _football(i)]
     return {"items": items, "failed": failed, "built": _iso(now)}
 
 

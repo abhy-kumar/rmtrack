@@ -72,3 +72,10 @@ def test_thin_commentary_still_rates():
     navarro = next(p for p in m["away"]["xi"] if p["name"] == "Eva Navarro")
     assert navarro["g"] == 1 and navarro["r"] > 7
     assert m["home"]["name"] == "Athletic"
+
+
+def test_basketball_is_filtered():
+    from app.news import _football
+    assert not _football({"title": "El Real Madrid de baloncesto gana en la Euroliga"})
+    assert not _football({"title": "x", "title_en": "Real Madrid basketball sign a centre"})
+    assert _football({"title": "Feliz cumpleaños, Vinicius"})
