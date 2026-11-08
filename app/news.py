@@ -113,7 +113,7 @@ def _words(team_key):
     }.get(team_key, ["madrid"])
 
 
-async def collect(team_key, extra_handles=()):
+async def collect(team_key, extra_handles=(), extra_names=()):
     team = espn.team(team_key)
     phrase = team["news"]
     jobs = []
@@ -134,6 +134,8 @@ async def collect(team_key, extra_handles=()):
             jobs.append(_google(o["gnews"].replace("{team}", phrase), o["name"], o["tier"], lang=o.get("lang")))
     for h in extra_handles:
         jobs.append(_bluesky(h, h.split(".")[0], "B", _words(team_key)))
+    for n in extra_names:
+        jobs.append(_google(f"\"{n}\" \"{phrase}\"", n, "B", n))
 
     results = await asyncio.gather(*jobs, return_exceptions=True)
     items, seen, failed = [], set(), 0
@@ -167,9 +169,9 @@ async def collect(team_key, extra_handles=()):
     return {"items": items, "failed": failed, "built": _iso(now)}
 
 
-async def feed(team_key, extra_handles=()):
-    key = ("news", team_key, tuple(sorted(extra_handles)))
-    return await cached(key, 600, lambda: collect(team_key, extra_handles))
+async def feed(team_key, extra_handles=(), extra_names=()):
+    key = ("news", team_key, tuple(sorted(extra_handles)), tuple(sorted(extra_names)))
+    return await cached(key, 600, lambda: collect(team_key, extra_handles, extra_names))
 
 
 X_URL = re.compile(r"^https?://(?:www\.|mobile\.)?(?:x|twitter)\.com/[^/]+/status/\d+")

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>rmtrack</title>
+<meta name="description" content="Real Madrid matches, minute by minute. Unofficial.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#d9d9d9" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/img/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/img/icon-192.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/css/site.css?v=1">
+<script>
+  // theme before first paint, so there's no white flash on AMOLED
+  try {
+    var s = JSON.parse(localStorage.getItem("rm:prefs") || "{}");
+    var t = s.theme || "auto";
+    if (t === "auto") t = matchMedia("(prefers-color-scheme: dark)").matches ? "amoled" : "light";
+    document.documentElement.dataset.theme = t;
+    if (s.ttx) document.documentElement.classList.add("ttx");
+  } catch (e) {}
+</script>
+<script type="module" src="/js/app.js?v=1"></script>
+</head>
+<body>
+<div id="wrap">
+  <div id="ticker" aria-hidden="true"><div class="tk"><span>loading the wires&hellip;</span></div></div>
+  <header id="mast">
+    <a href="#/" class="logo"><span class="big">rm</span><span class="small">track</span></a>
+    <div class="masthead-r">
+      <div id="clock">--:--:--</div>
+      <div id="teamsel"></div>
+    </div>
+  </header>
+  <nav id="nav">
+    <a href="#/" data-p="100">home</a>
+    <a href="#/fixtures" data-p="200">fixtures</a>
+    <a href="#/table" data-p="300">tables</a>
+    <a href="#/news" data-p="400">news</a>
+    <a href="#/squad" data-p="500">squad</a>
+    <a href="#/ratings" data-p="600">ratings</a>
+    <a href="#/settings" data-p="700">settings</a>
+  </nav>
+  <div id="flash" hidden></div>
+  <main id="main"><p class="loading">loading&hellip;</p></main>
+  <footer id="foot">
+    <p>rmtrack is an unofficial fan page. Not affiliated with Real Madrid C.F.<br>
+    Scores &amp; commentary: ESPN &middot; news: the outlets credited on each line &middot; ratings: our own model, see <a href="#/ratings">how it works</a>.</p>
+    <p class="tiny"><span id="built"></span> &middot; best viewed in any browser at any resolution</p>
+  </footer>
+</div>
+<noscript><p style="padding:1em">rmtrack needs JavaScript for live scores. Sorry.</p></noscript>
+</body>
+</html>

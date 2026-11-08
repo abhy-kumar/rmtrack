@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
-from . import espn, news, season
+from . import espn, news, ratings, season
 from .net import cached
 
 app = FastAPI(title="rmtrack", docs_url=None, redoc_url=None, openapi_url=None)
@@ -113,9 +113,18 @@ async def table(league: str):
 
 
 @app.get("/api/news")
-async def news_feed(team: str = "men", bsky: str = ""):
+async def news_feed(team: str = "men", bsky: str = "", who: str = ""):
     handles = tuple(h.strip().lstrip("@") for h in bsky.split(",") if "." in h.strip())[:6]
-    return out(await news.feed(_team(team), handles), cdn=300)
+    names = tuple(n.strip()[:40] for n in who.split(",") if len(n.strip()) > 3)[:6]
+    return out(await news.feed(_team(team), handles, names), cdn=300)
+
+
+@app.get("/api/model")
+async def model():
+    r = ratings
+    return out({"base": r.BASE, "pos": r.POS, "events": r.W, "labels": r.LABELS, "save": r.SAVE,
+                "pen_save": r.PEN_SAVE, "conceded": r.CONCEDED, "clean": r.CLEAN, "result": r.RESULT,
+                "minutes": r.MINUTES, "possession": r.POSSESSION, "min_minutes": r.MIN_SECONDS // 60}, cdn=86400)
 
 
 @app.post("/api/paste")
