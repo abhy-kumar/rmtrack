@@ -268,7 +268,8 @@ function pitch(side, m) {
 function ratingTable(side, m) {
   const fan = store("fan:" + m.id) || {};
   const all = [...side.xi, ...side.bench.filter((p) => p.mins > 0)];
-  return h`<div class="scroll"><table class="t">
+  return h`<div class="scroll"><table class="t fx">
+    <colgroup><col style="width:40px"><col><col class="hide-s" style="width:64px"><col style="width:50px"><col style="width:90px"><col style="width:70px"><col style="width:70px"></colgroup>
     <tr><th>#</th><th>player</th><th class="hide-s">pos</th><th class="n">min</th><th></th><th class="c">rating</th><th class="c">you</th></tr>
     ${all.map((p) => h`<tr>
       <td>${p.no}</td>
@@ -367,7 +368,8 @@ export async function fixtures(el) {
       <a class="btn" href="/api/calendar.ics?team=${prefs.team}" download>.ics file</a>
     </div>
     ${!inSpain ? h`<p class="sub">Times in ${userTz.replace(/_/g, " ")}, Madrid time in brackets.</p>` : ""}
-    ${Object.entries(months).map(([mo, fs]) => h`<div class="box flat"><h2>${mo}</h2><div class="in scroll"><table class="t">
+    ${Object.entries(months).map(([mo, fs]) => h`<div class="box flat"><h2>${mo}</h2><div class="in scroll"><table class="t fx">
+      <colgroup><col style="width:120px"><col style="width:110px"><col><col style="width:90px"><col style="width:48px"></colgroup>
       ${fs.map((f) => {
         const done = f.status.state === "post", show = revealed(f.id);
         return h`<tr class="${f.status.state === "in" ? "me" : ""}">
@@ -549,7 +551,8 @@ export async function squad(el) {
   }
   put(el, h`<h1 class="pagehead">Squad <small>${TEAM_NAMES[prefs.team]}${sq.coach ? ", coach " + sq.coach : ""}</small></h1>
     ${warn.length ? box("availability", warn) : ""}
-    ${groups.map((g, i) => g.length ? h`<div class="box flat"><h2>${POS_NAME[i]}</h2><div class="in scroll"><table class="t">
+    ${groups.map((g, i) => g.length ? h`<div class="box flat"><h2>${POS_NAME[i]}</h2><div class="in scroll"><table class="t fx">
+      <colgroup><col style="width:44px"><col><col class="hide-s" style="width:56px"><col class="hide-s" style="width:150px"><col style="width:76px"><col style="width:64px"><col style="width:40px"><col style="width:40px"><col class="hide-s" style="width:40px"><col style="width:70px"></colgroup>
       <tr><th>#</th><th>player</th><th class="n hide-s">age</th><th class="hide-s">nat.</th><th class="n">apps</th><th class="n">min</th><th class="n">G</th><th class="n">A</th><th class="n hide-s">Y</th><th class="c">avg</th></tr>
       ${g.sort((a, b) => (+a.p.no || 99) - (+b.p.no || 99)).map(({ p, st }) => h`<tr>
         <td>${p.no || ""}</td><td><a href="#/player/${p.id}">${p.name}</a>${p.injuries?.length ? h` <span class="inj">INJ</span>` : ""}${st.motm ? h` <span class="sub">${st.motm}x motm</span>` : ""}</td>
