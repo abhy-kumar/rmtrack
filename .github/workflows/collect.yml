@@ -1,0 +1,40 @@
+name: collect
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # matches
+    - cron: "41 22 * * *"  # matches + news snapshot
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: collect
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: collect
+        run: |
+          if [ "${{ github.event.schedule }}" = "41 22 * * *" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python -m app.collect --news
+          else
+            python -m app.collect
+          fi
+      - name: commit
+        run: |
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "nothing new"
+            exit 0
+          fi
+          git -c user.name="abhy-kumar" -c user.email="abhiks177@gmail.com" commit -q -m "data $(date -u +%F)"
+          git push
