@@ -1,9 +1,10 @@
-import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz } from "./core.js?v=4";
-import { startWatching, onLive } from "./alerts.js?v=4";
-import * as v from "./views.js?v=4";
+import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz } from "./core.js?v=5";
+import { startWatching, onLive } from "./alerts.js?v=5";
+import * as v from "./views.js?v=5";
+import * as st from "./stats.js?v=5";
 
 const main = document.getElementById("main");
-const PAGES = { "100": "#/", "200": "#/fixtures", "300": "#/table", "400": "#/news", "500": "#/squad", "600": "#/ratings", "700": "#/settings" };
+const PAGES = { "100": "#/", "200": "#/fixtures", "300": "#/table", "400": "#/news", "500": "#/squad", "600": "#/stats", "700": "#/ratings", "800": "#/settings" };
 let cleanup = null;
 let t0 = 0;
 
@@ -14,7 +15,7 @@ async function route(force) {
   const [page, a, b, c] = parts;
   const key = "#/" + (page || "");
   document.querySelectorAll("#nav a").forEach((n) => {
-    const on = n.getAttribute("href") === key || (page === "match" && n.getAttribute("href") === "#/fixtures") || (page === "player" && n.getAttribute("href") === "#/squad");
+    const on = n.getAttribute("href") === key || (page === "match" && n.getAttribute("href") === "#/fixtures") || (page === "player" && n.getAttribute("href") === "#/squad") || (page === "pro" && n.getAttribute("href") === "#/stats");
     n.classList.toggle("on", on);
   });
   const p = document.querySelector(`#nav a.on`)?.dataset.p || "100";
@@ -30,6 +31,8 @@ async function route(force) {
       case "squad": cleanup = await v.squad(main); break;
       case "player": cleanup = await v.player(main, a); break;
       case "ratings": cleanup = await v.ratingsPage(main); break;
+      case "stats": cleanup = await st.explorer(main, a, b || "teams"); break;
+      case "pro": cleanup = await st.profile(main, a, b); break;
       case "settings": cleanup = await v.settings(main, (teamChanged) => { drawTeams(); v.fillTicker(); route(teamChanged); }); break;
       default: cleanup = await v.home(main);
     }

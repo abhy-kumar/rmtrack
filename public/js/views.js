@@ -1,9 +1,10 @@
 import {
   api, staticJson, prefs, savePrefs, store, applyTheme, h, html, raw, esc,
   when, until, ago, hhmm, day, userTz, inSpain, rt, comp, flash,
-} from "./core.js?v=4";
-import { live, beep } from "./alerts.js?v=4";
-import { shotMap, momentum, territory, playerMap } from "./maps.js?v=4";
+} from "./core.js?v=5";
+import { live, beep } from "./alerts.js?v=5";
+import { shotMap, momentum, territory, playerMap, xgRace } from "./maps.js?v=5";
+import { scouting, workload, workloadTable, LEAGUES } from "./stats.js?v=5";
 
 const TEAM_NAMES = { men: "Real Madrid", women: "Real Madrid Femenino", castilla: "Real Madrid Castilla" };
 const TEAM_IDS = { men: "86", women: "21128", castilla: "7000" };
@@ -208,6 +209,8 @@ export async function match(el, league, id, tab = "live") {
       <div class="tabbody">${body(m, tab)}</div>
       <p class="sub">updated ${hhmm(new Date(m.updated))}${m.status.state === "in" ? ", refreshing every 15s" : ""}</p>`);
     keep.forEach((k) => el.querySelector(`details[data-k="${k}"]`)?.setAttribute("open", ""));
+    const slot = el.querySelector("#scout");
+    if (slot) scouting(m).then((v) => { slot.innerHTML = html(v); }).catch(() => {});
     if (!first) window.scrollTo(0, scrollY);
     wire(el, m);
   };
@@ -223,7 +226,7 @@ function body(m, tab) {
   if (!show && tab !== "before") return h`<p>Spoiler mode is on. ${veil(m.id)} to see what happened.</p>`;
   if (tab === "lineups") return lineups(m);
   if (tab === "stats") return stats(m);
-  if (tab === "maps") return m.status.state === "pre" ? h`<p class="empty">Maps fill in once the match starts.</p>` : h`${shotMap(m)}${momentum(m)}${territory(m)}`;
+  if (tab === "maps") return m.status.state === "pre" ? h`<p class="empty">Maps fill in once the match starts.</p>` : h`${shotMap(m)}${xgRace(m)}${momentum(m)}${territory(m)}`;
   if (tab === "before") return before(m);
   return commentary(m);
 }
@@ -276,7 +279,7 @@ function ratingTable(side, m) {
     ${all.map((p) => h`<tr>
       <td>${p.no}</td>
       <td>${side.id === myId() ? h`<a href="#/player/${p.id}">${p.name}</a>` : p.name}${p.on && p.on > 0 ? h` <span class="sub">on ${p.on}'</span>` : ""}${p.off != null && p.off > 0 && side.xi.includes(p) ? h` <span class="sub">off ${p.off}'</span>` : ""}
-        ${m.rated && p.mins ? h`<details class="why" data-k="p${p.id}"><summary class="sub">map</summary>${playerMap(m, p.id)}</details>` : ""}
+        ${m.rated && p.mins ? h`<details class="why" data-k="p${p.id}"><summary class="sub">map</summary><p class="sub">xG ${(p.xg ?? 0).toFixed(2)}, xA ${(p.xa ?? 0).toFixed(2)}</p>${playerMap(m, p.id)}</details>` : ""}
         ${p.why?.length ? h`<details class="why" data-k="w${p.id}"><summary class="sub">why ${p.r?.toFixed(1)}?</summary><div class="bd">${[["start", 6], ...p.why].map(([k, v]) => h`${k}: ${v > 0 && k !== "start" ? "+" : ""}${Number(v).toFixed(2)}<br>`)}</div></details>` : ""}
       </td>
       <td class="hide-s sub">${p.pos}</td>
@@ -314,7 +317,7 @@ function stats(m) {
 function before(m) {
   const row = (f) => h`<tr><td>${f.date ? day(new Date(f.date)) : ""}</td><td>${f.at === "@" ? "at " : "v "}${f.opp}</td><td class="n">${f.score}</td><td class="c"><span class="form"><span class="${f.res}">${f.res}</span></span></td></tr>`;
   const formBox = (side) => h`<div><h3>${side.name}</h3>${side.form?.length ? h`<table class="t">${side.form.map(row)}</table>` : h`<p class="empty">no recent games listed</p>`}</div>`;
-  return h`<div class="pitches">${formBox(m.home)}${formBox(m.away)}</div>
+  return h`<div id="scout"></div><div class="pitches">${formBox(m.home)}${formBox(m.away)}</div>
     ${m.h2h?.length ? h`<h3 style="margin-top:10px">Last meetings</h3><table class="t">${m.h2h.map((g) => h`<tr><td>${g.date ? day(new Date(g.date)) : ""}</td><td>${g.comp || ""}</td><td class="n">${g.score}</td></tr>`)}</table>` : ""}`;
 }
 
@@ -554,6 +557,7 @@ export async function squad(el) {
   }
   put(el, h`<h1 class="pagehead">Squad <small>${TEAM_NAMES[prefs.team]}${sq.coach ? ", coach " + sq.coach : ""}</small></h1>
     ${warn.length ? box("availability", warn) : ""}
+    ${box("workload watch", workloadTable(s, sq.players), "all competitions")}
     ${groups.map((g, i) => g.length ? h`<div class="box flat"><h2>${POS_NAME[i]}</h2><div class="in scroll"><table class="t fx">
       <colgroup><col style="width:44px"><col><col class="hide-s" style="width:56px"><col class="hide-s" style="width:150px"><col style="width:76px"><col style="width:64px"><col style="width:40px"><col style="width:40px"><col class="hide-s" style="width:40px"><col style="width:70px"></colgroup>
       <tr><th>#</th><th>player</th><th class="n hide-s">age</th><th class="hide-s">nat.</th><th class="n">apps</th><th class="n">min</th><th class="n">G</th><th class="n">A</th><th class="n hide-s">Y</th><th class="c">avg</th></tr>
@@ -604,6 +608,11 @@ export async function player(el, pid) {
         <dt>avg rating</dt><dd>${st.avg != null ? rt(Math.round(st.avg * 100) / 100) : "-"}</dd>
         <dt>your avg</dt><dd>${fanAvg != null ? fanAvg.toFixed(2) : h`<span class="sub">rate him on a match page</span>`}</dd>
         <dt>player of the match</dt><dd>${st.motm}</dd></dl>`)}
+      ${(() => { const w = workload(s, pid); return box("workload", h`<dl class="kv">
+        <dt>last 7 days</dt><dd>${w.m7} min</dd><dt>last 28 days</dt><dd>${w.m28} min</dd>
+        <dt>games in 14 days</dt><dd>${w.g14}</dd><dt>ACWR</dt><dd>${w.acwr == null ? "-" : w.acwr.toFixed(2)}</dd>
+        <dt>days since last game</dt><dd>${w.rest ?? "-"}</dd></dl>${w.flags.length ? h`<p class="warn">${w.flags.join(", ")}</p>` : ""}`); })()}
+      ${box("league profile", h`${(LEAGUES[prefs.team] || []).map((lg) => h`<p><a href="#/pro/${lg}/${pid}">${comp(lg)} percentiles, xG and xA</a></p>`)}`)}
     </div></div>`);
 }
 
@@ -632,6 +641,11 @@ export async function ratingsPage(el) {
     <p>What we can't see: passes, duels, dribbles and tackles per player. ESPN only gives those for whole teams. So a midfielder who runs the game without shooting or fouling can come out a bit lower than he deserves. Team possession and the result are in there partly to make up for that.</p>
     <p>Anyone on for less than ${w?.min_minutes ?? 10} minutes doesn't get a number. During a game ratings are live and drift up with minutes played, the same way FotMob's do.</p>
     <p>Don't agree? Every match page lets you put in your own score next to ours, and the player pages keep your average. It's all stored in your browser, nowhere else.</p>
+    <h2 class="pagehead" style="margin-top:20px">Expected goals (xG)</h2>
+    <p>Every shot gets a number between 0 and 1: how often a shot like it goes in. We work it out from where it was hit (distance to goal and how much of the goal mouth the shooter can see) and whether it was a header. Penalties get a flat ${w?.xg?.penalty ?? 0.76}.</p>
+    <p>${w?.xg?.fit_m ? h`The model is refitted every time the league job runs. Last fit: ${w.xg.fit_m.shots} shots, ${w.xg.fit_m.goals} goals, ${w.xg.fit_m.xg} total xG.` : "Until the league job has collected enough shots it runs on a starting model tuned to the usual public xG values; after that it's refitted on every shot we've stored."}</p>
+    <p>xA is the xG of the shots a player set up. npxG leaves penalties out, which is the fairer way to compare attackers.</p>
+    ${w?.xg_examples ? h`<table class="t fx" style="max-width:420px"><colgroup><col><col style="width:80px"></colgroup>${Object.entries(w.xg_examples).map(([k, v]) => h`<tr><td>${k}</td><td class="n">${v.toFixed(2)}</td></tr>`)}</table>` : ""}
   </div><div>
     ${w ? box("the weights", h`<table class="t">
       ${row("goal", w.events.goals)}${row("penalty goal (on top)", w.events.pen_goals)}${row("assist", w.events.assists)}
@@ -657,7 +671,7 @@ export async function settings(el, rerender) {
     ${box("team", h`<div class="row">${opt("team", "men", "Real Madrid")}${opt("team", "women", "Femenino")}${opt("team", "castilla", "Castilla")}</div>
       <p class="sub">Castilla coverage is thin: ESPN doesn't carry Primera Federación, so you'll mostly see friendlies.</p>`)}
     ${box("look", h`<div class="row">${opt("theme", "auto", "follow my device")}${opt("theme", "light", "light")}${opt("theme", "dark", "dark grey")}${opt("theme", "amoled", "pure black (AMOLED)")}</div>
-      <p class="sub">Tip: type a page number (100 to 700) anywhere to jump straight to it.</p>`)}
+      <p class="sub">Tip: type a page number (100 to 800) anywhere to jump straight to it.</p>`)}
     ${box("times", h`<div class="row">${opt("times", "both", "mine + Madrid")}${opt("times", "local", "just mine")}${opt("times", "madrid", "just Madrid")}</div>
       <p class="sub">Your timezone: ${userTz}${inSpain ? " (that's Spain, so Madrid time is your time)" : ""}</p>`)}
     ${box("match day", h`

@@ -458,6 +458,12 @@ svg.momentum text { fill: var(--faint); font: 6px var(--mono); }
 .third i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--head); }
 .third span { position: relative; padding-left: 4px; font-size: 12px; line-height: 16px; }
 .pmap { padding: 4px 0; }
+svg.race-svg { height: 170px; }
+.race { fill: none; stroke: var(--ink); stroke-width: 1.4; }
+.race.away { stroke-dasharray: 4 2; stroke: var(--mute); }
+.race-goal { fill: var(--paper); stroke: var(--ink); stroke-width: 1.2; }
+.race-goal.away { stroke: var(--mute); }
+table.pct td { vertical-align: middle; }
 
 /* ---------- small screens ---------- */
 @media (max-width: 700px) {
