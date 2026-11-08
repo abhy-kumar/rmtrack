@@ -3,6 +3,7 @@ import {
   when, until, ago, hhmm, day, userTz, inSpain, rt, comp, flash,
 } from "./core.js";
 import { live, beep } from "./alerts.js";
+import { shotMap, momentum, territory, playerMap } from "./maps.js";
 
 const TEAM_NAMES = { men: "Real Madrid", women: "Real Madrid Femenino", castilla: "Real Madrid Castilla" };
 const TEAM_IDS = { men: "86", women: "21128", castilla: "7000" };
@@ -198,7 +199,7 @@ export async function match(el, league, id, tab = "live") {
     try { m = await api(`/api/match/${league}/${id}`, { ttl: first ? 5 : 0 }); }
     catch (e) { if (first) put(el, fail("this match")); return; }
     if (!m.rated && tab === "lineups" && !m.home.xi.length) tab = "before";
-    const tabs = [["live", m.status.state === "pre" ? "preview" : "commentary"], ["lineups", "line-ups & ratings"], ["stats", "stats"], ["before", "form & h2h"]];
+    const tabs = [["live", m.status.state === "pre" ? "preview" : "commentary"], ["lineups", "line-ups & ratings"], ["maps", "maps"], ["stats", "stats"], ["before", "form & h2h"]];
     const open = el.querySelectorAll("details[open]");
     const keep = [...open].map((d) => d.dataset.k);
     const scrollY = window.scrollY;
@@ -222,6 +223,7 @@ function body(m, tab) {
   if (!show && tab !== "before") return h`<p>Spoiler mode is on. ${veil(m.id)} to see what happened.</p>`;
   if (tab === "lineups") return lineups(m);
   if (tab === "stats") return stats(m);
+  if (tab === "maps") return m.status.state === "pre" ? h`<p class="empty">Maps fill in once the match starts.</p>` : h`${shotMap(m)}${momentum(m)}${territory(m)}`;
   if (tab === "before") return before(m);
   return commentary(m);
 }
@@ -274,6 +276,7 @@ function ratingTable(side, m) {
     ${all.map((p) => h`<tr>
       <td>${p.no}</td>
       <td>${side.id === myId() ? h`<a href="#/player/${p.id}">${p.name}</a>` : p.name}${p.on && p.on > 0 ? h` <span class="sub">on ${p.on}'</span>` : ""}${p.off != null && p.off > 0 && side.xi.includes(p) ? h` <span class="sub">off ${p.off}'</span>` : ""}
+        ${m.rated && p.mins ? h`<details class="why" data-k="p${p.id}"><summary class="sub">map</summary>${playerMap(m, p.id)}</details>` : ""}
         ${p.why?.length ? h`<details class="why" data-k="w${p.id}"><summary class="sub">why ${p.r?.toFixed(1)}?</summary><div class="bd">${[["start", 6], ...p.why].map(([k, v]) => h`${k}: ${v > 0 && k !== "start" ? "+" : ""}${Number(v).toFixed(2)}<br>`)}</div></details>` : ""}
       </td>
       <td class="hide-s sub">${p.pos}</td>
@@ -654,7 +657,7 @@ export async function settings(el, rerender) {
     ${box("team", h`<div class="row">${opt("team", "men", "Real Madrid")}${opt("team", "women", "Femenino")}${opt("team", "castilla", "Castilla")}</div>
       <p class="sub">Castilla coverage is thin: ESPN doesn't carry Primera Federación, so you'll mostly see friendlies.</p>`)}
     ${box("look", h`<div class="row">${opt("theme", "auto", "follow my device")}${opt("theme", "light", "light")}${opt("theme", "dark", "dark grey")}${opt("theme", "amoled", "pure black (AMOLED)")}</div>
-      <div class="row"><label><input type="checkbox" id="ttx" ${prefs.ttx ? "checked" : ""}> teletext mode</label> <span class="sub">in teletext mode you can type a page number (100-700) to jump</span></div>`)}
+      <p class="sub">Tip: type a page number (100 to 700) anywhere to jump straight to it.</p>`)}
     ${box("times", h`<div class="row">${opt("times", "both", "mine + Madrid")}${opt("times", "local", "just mine")}${opt("times", "madrid", "just Madrid")}</div>
       <p class="sub">Your timezone: ${userTz}${inSpain ? " (that's Spain, so Madrid time is your time)" : ""}</p>`)}
     ${box("match day", h`
@@ -677,7 +680,6 @@ export async function settings(el, rerender) {
       if (r.name === "team") rerender(true);
     }));
   const tick = (id, fn) => el.querySelector("#" + id).addEventListener("change", (e) => { prefs[id] = e.target.checked; savePrefs(); fn?.(e); });
-  tick("ttx", applyTheme);
   tick("beep");
   tick("spoilers");
   tick("alerts", async (e) => {
