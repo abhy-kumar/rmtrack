@@ -33,7 +33,7 @@ export function beep(times = 1) {
 }
 
 async function notify(title, body, tag) {
-  flash(`<b>${esc(title)}</b> &mdash; ${esc(body)}`, 9000);
+  flash(`<b>${esc(title)}</b>: ${esc(body)}`, 9000);
   if (!prefs.alerts || !("Notification" in window) || Notification.permission !== "granted") return;
   const opts = { body, tag, icon: "/img/icon-192.png", badge: "/img/icon-192.png", renotify: true };
   try {

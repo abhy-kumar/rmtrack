@@ -161,7 +161,7 @@ function newsItem(it, compact = false) {
   return h`<li>
     <div class="hd"><span class="tier ${t}" title="tier ${t}">${t}</span><a href="${it.url}" target="_blank" rel="noopener noreferrer">${title}</a></div>
     ${it.title_en && !compact ? h`<div class="orig">${it.title}</div>` : ""}
-    <div class="by">${it.journalist && it.journalist !== it.source ? h`${it.journalist} · ` : ""}${it.source}${it.kind === "post" ? " post" : ""} · ${ago(it.published)}${it.title_en ? h` · <span title="translated from ${it.lang || "?"}">translated</span>` : ""}</div>
+    <div class="by">${it.kind === "mention" ? h`citing ${it.journalist} · ` : it.journalist && it.journalist !== it.source ? h`${it.journalist} · ` : ""}${it.source}${it.kind === "post" ? " post" : ""} · ${ago(it.published)}${it.title_en ? h` · <span title="translated from ${it.lang || "?"}">translated</span>` : ""}</div>
   </li>`;
 }
 

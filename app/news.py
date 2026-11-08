@@ -77,7 +77,7 @@ async def _google(query, label, tier, journalist=None, lang=None, must=None, onl
         if must and not any(w in title.lower() for w in must):
             continue  # a namesake, or nothing to do with us
         out.append(_item(title, r["link"], _iso(_date(r["date"])), outlet if journalist else label,
-                         tier, lang, journalist))
+                         tier, lang, journalist, "mention" if journalist else "article"))
     return out[:15]
 
 

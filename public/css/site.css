@@ -349,7 +349,7 @@ label { cursor: pointer; }
 .pl .rt { position: absolute; top: -9px; left: calc(50% + 9px); min-width: 26px; font-size: 10px; line-height: 14px; }
 .pitch .cap { color: var(--pitch-line); font: 11px "Courier New", monospace; text-align: center; }
 
-.rt {
+.rt { white-space: nowrap;
   display: inline-block; min-width: 30px; text-align: center;
   font: bold 11px/16px Verdana, sans-serif; padding: 0 3px;
   border: 1px solid var(--ink); background: var(--paper); color: var(--ink);
