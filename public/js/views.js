@@ -1,10 +1,10 @@
 import {
   api, staticJson, prefs, savePrefs, store, applyTheme, h, html, raw, esc,
   when, until, ago, hhmm, day, userTz, inSpain, rt, comp, flash,
-} from "./core.js?v=5";
-import { live, beep } from "./alerts.js?v=5";
-import { shotMap, momentum, territory, playerMap, xgRace } from "./maps.js?v=5";
-import { scouting, workload, workloadTable, LEAGUES } from "./stats.js?v=5";
+} from "./core.js?v=6";
+import { live, beep } from "./alerts.js?v=6";
+import { shotMap, momentum, territory, playerMap, xgRace } from "./maps.js?v=6";
+import { scouting, workload, workloadTable, LEAGUES } from "./stats.js?v=6";
 
 const TEAM_NAMES = { men: "Real Madrid", women: "Real Madrid Femenino", castilla: "Real Madrid Castilla" };
 const TEAM_IDS = { men: "86", women: "21128", castilla: "7000" };

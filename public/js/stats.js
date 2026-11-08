@@ -1,6 +1,6 @@
 // League-wide numbers: explorer, player profiles, opponent scouting, workload.
 // Everything here reads the static files the collector writes under /data/lg/.
-import { staticJson, prefs, h, html, raw, esc, day, rt, comp } from "./core.js?v=5";
+import { staticJson, prefs, h, html, raw, esc, day, rt, comp } from "./core.js?v=6";
 
 export const LEAGUES = {
   men: ["esp.1", "uefa.champions"],

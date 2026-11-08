@@ -1,7 +1,7 @@
-import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz } from "./core.js?v=5";
-import { startWatching, onLive } from "./alerts.js?v=5";
-import * as v from "./views.js?v=5";
-import * as st from "./stats.js?v=5";
+import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz } from "./core.js?v=6";
+import { startWatching, onLive } from "./alerts.js?v=6";
+import * as v from "./views.js?v=6";
+import * as st from "./stats.js?v=6";
 
 const main = document.getElementById("main");
 const PAGES = { "100": "#/", "200": "#/fixtures", "300": "#/table", "400": "#/news", "500": "#/squad", "600": "#/stats", "700": "#/ratings", "800": "#/settings" };

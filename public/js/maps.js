@@ -1,11 +1,13 @@
 // Pitch drawings built from the positions in ESPN's commentary.
 // Positions come as 0-100 on both axes, in the attacking frame of the side
 // that made the play: x=100 is the goal they're shooting at.
-import { h, raw, esc } from "./core.js?v=5";
+import { h, raw, esc } from "./core.js?v=6";
 
 const L = 105, W = 68;          // pitch in metres
 const X = (x) => (x / 100) * L;
-const Y = (y) => (y / 100) * W;
+// ESPN's y runs from the attacker's right (0) to his left (100). Attacking
+// to the right of the screen, his right is the bottom, so y is flipped.
+const Y = (y) => W - (y / 100) * W;
 
 // home attacks right, away attacks left
 const place = (side, x, y) => (side === "away" ? [L - X(x), W - Y(y)] : [X(x), Y(y)]);
