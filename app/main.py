@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
-from . import espn, news, ratings, season
+from . import espn, news, ratings, season, xg
 from .net import cached
 
 app = FastAPI(title="rmtrack", docs_url=None, redoc_url=None, openapi_url=None)
@@ -124,7 +124,11 @@ async def model():
     r = ratings
     return out({"base": r.BASE, "pos": r.POS, "events": r.W, "labels": r.LABELS, "save": r.SAVE,
                 "pen_save": r.PEN_SAVE, "conceded": r.CONCEDED, "clean": r.CLEAN, "result": r.RESULT,
-                "minutes": r.MINUTES, "possession": r.POSSESSION, "min_minutes": r.MIN_SECONDS // 60}, cdn=86400)
+                "minutes": r.MINUTES, "possession": r.POSSESSION, "min_minutes": r.MIN_SECONDS // 60,
+                "xg": {k: v for k, v in xg.model().items() if k != "features"},
+                "xg_examples": {"6m central": xg.predict(94.3, 50), "penalty spot, open play": xg.predict(89.5, 50),
+                                "edge of the box": xg.predict(84.3, 50), "25m": xg.predict(76.2, 50),
+                                "6m header": xg.predict(94.3, 50, head=True), "6m out, 10m wide": xg.predict(94.3, 65)}}, cdn=3600)
 
 
 @app.post("/api/paste")

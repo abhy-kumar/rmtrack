@@ -1,7 +1,7 @@
 // Pitch drawings built from the positions in ESPN's commentary.
 // Positions come as 0-100 on both axes, in the attacking frame of the side
 // that made the play: x=100 is the goal they're shooting at.
-import { h, raw, esc } from "./core.js?v=4";
+import { h, raw, esc } from "./core.js?v=5";
 
 const L = 105, W = 68;          // pitch in metres
 const X = (x) => (x / 100) * L;
@@ -30,12 +30,13 @@ function svg(inner, cls = "") {
 }
 
 // one marker per outcome; shape carries the meaning, fill carries the side
-function marker(k, x, y, side, tip) {
+function marker(k, x, y, side, tip, size = 1) {
   const c = `mk ${side}`;
+  const R = (r) => (r * size).toFixed(2);
   const t = tip ? `<title>${esc(tip)}</title>` : "";
   switch (k) {
-    case "goal": return `<g>${t}<circle class="${c}" cx="${x}" cy="${y}" r="1.7"/><circle class="mk-ring" cx="${x}" cy="${y}" r="2.6"/></g>`;
-    case "saved": return `<g>${t}<circle class="${c} hollow" cx="${x}" cy="${y}" r="1.3"/></g>`;
+    case "goal": return `<g>${t}<circle class="${c}" cx="${x}" cy="${y}" r="${R(1.7)}"/><circle class="mk-ring" cx="${x}" cy="${y}" r="${R(2.6)}"/></g>`;
+    case "saved": return `<g>${t}<circle class="${c} hollow" cx="${x}" cy="${y}" r="${R(1.3)}"/></g>`;
     case "blocked": return `<g>${t}<rect class="${c}" x="${x - 0.9}" y="${y - 0.9}" width="1.8" height="1.8"/></g>`;
     case "post": return `<g>${t}<rect class="${c} hollow" x="${x - 1}" y="${y - 1}" width="2" height="2" transform="rotate(45 ${x} ${y})"/></g>`;
     case "fw": return `<g>${t}<path class="${c}" d="M${x} ${y - 1.3}L${x + 1.2} ${y + 0.9}L${x - 1.2} ${y + 0.9}Z"/></g>`;
@@ -59,25 +60,27 @@ export function shotMap(m) {
   const marks = [];
   for (const s of m.shots) {
     const [x, y] = place(s.s, s.x, s.y);
-    const tip = `${s.name} ${s.m}, ${KIND[s.k] || s.k}${s.head ? ", header" : ""}${s.pen ? ", penalty" : ""}`;
+    const tip = `${s.name} ${s.m}, ${KIND[s.k] || s.k}${s.head ? ", header" : ""}${s.pen ? ", penalty" : ""}${s.xg != null ? `, xG ${s.xg.toFixed(2)}` : ""}`;
     if ((s.k === "goal" || s.k === "saved") && s.x2 != null) {
       const [x2, y2] = place(s.s, s.x2, s.y2);
       marks.push(`<line class="trail" x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`);
     }
-    marks.push(marker(shape(s.k), +x.toFixed(1), +y.toFixed(1), s.s, tip));
+    marks.push(marker(shape(s.k), +x.toFixed(1), +y.toFixed(1), s.s, tip, 0.7 + 1.6 * Math.sqrt(s.xg || 0)));
   }
   const sum = (side) => {
     const sh = m.shots.filter((s) => s.s === side);
     const inBox = sh.filter((s) => s.x >= 84.3 && s.y >= 20.4 && s.y <= 79.6).length;
-    return h`<td class="n">${sh.length}</td><td class="n">${sh.filter((s) => s.k === "goal" || s.k === "saved").length}</td><td class="n">${inBox}</td><td class="n">${sh.filter((s) => s.head).length}</td>`;
+    const x = sh.reduce((t, s) => t + (s.xg || 0), 0);
+    const best = sh.filter((s) => (s.xg || 0) >= 0.3).length;
+    return h`<td class="n"><b>${x.toFixed(2)}</b></td><td class="n">${sh.length}</td><td class="n">${sh.filter((s) => s.k === "goal" || s.k === "saved").length}</td><td class="n">${inBox}</td><td class="n">${best}</td><td class="n">${sh.length ? (x / sh.length).toFixed(2) : "-"}</td>`;
   };
   return h`
     <div class="mapcap"><span>&lt; ${m.away.name} attack this way</span><span>${m.home.name} attack this way &gt;</span></div>
     ${svg(marks.join(""))}
     ${legend(["goal", "saved", "blocked", "miss", "post"])}
-    <p class="sub">Light markers are ${m.home.name}, dark are ${m.away.name}. Lines show where shots on target ended up. Hover a marker for who and when.</p>
-    <table class="t fx" style="max-width:520px"><colgroup><col><col style="width:70px"><col style="width:90px"><col style="width:80px"><col style="width:80px"></colgroup>
-      <tr><th></th><th class="n">shots</th><th class="n">on target</th><th class="n">in box</th><th class="n">headers</th></tr>
+    <p class="sub">Light markers are ${m.home.name}, dark are ${m.away.name}. Bigger markers are better chances (higher xG). Lines show where shots on target ended up. Hover a marker for who, when and the xG.</p>
+    <table class="t fx" style="max-width:700px"><colgroup><col><col style="width:64px"><col style="width:64px"><col style="width:84px"><col style="width:64px"><col style="width:100px"><col style="width:84px"></colgroup>
+      <tr><th></th><th class="n">xG</th><th class="n">shots</th><th class="n">on target</th><th class="n">in box</th><th class="n" title="shots worth 0.3 xG or more">big chances</th><th class="n">xG/shot</th></tr>
       <tr><td>${m.home.name}</td>${sum("home")}</tr><tr><td>${m.away.name}</td>${sum("away")}</tr></table>`;
 }
 
@@ -147,4 +150,33 @@ export function playerMap(m, pid) {
     marks.push(marker(kk, +X(x).toFixed(1), +Y(y).toFixed(1), "home", `${Math.floor(t / 60) + 1}' ${NAMES[kk]}`));
   }
   return h`<div class="pmap">${svg(marks.join(""), "small")}${legend(["goal", "saved", "blocked", "miss", "fw", "fc", "ofs"])}<p class="sub">Attacking left to right.</p></div>`;
+}
+
+// running xG total for both sides, goals marked
+export function xgRace(m) {
+  const shots = (m.shots || []).filter((s) => s.xg != null).sort((a, b) => a.t - b.t);
+  if (!shots.length) return "";
+  const end = Math.max(90, ...shots.map((s) => s.t / 60)) + 2;
+  const tot = { home: 0, away: 0 };
+  const pts = { home: [[0, 0]], away: [[0, 0]] };
+  const goals = [];
+  for (const s of shots) {
+    if (!s.s) continue;
+    pts[s.s].push([s.t / 60, tot[s.s]]);
+    tot[s.s] += s.xg;
+    pts[s.s].push([s.t / 60, tot[s.s]]);
+    if (s.k === "goal") goals.push([s.s, s.t / 60, tot[s.s], `${s.name} ${s.m}, xG ${s.xg.toFixed(2)}`]);
+  }
+  pts.home.push([end, tot.home]);
+  pts.away.push([end, tot.away]);
+  const top = Math.max(1, tot.home, tot.away) * 1.1;
+  const W2 = 300, H2 = 110, px = (t) => ((t / end) * (W2 - 20) + 16).toFixed(1), py = (v) => (H2 - 12 - (v / top) * (H2 - 20)).toFixed(1);
+  const line = (side) => `<path class="race ${side}" d="${pts[side].map(([t, v], i) => `${i ? "L" : "M"}${px(t)} ${py(v)}`).join("")}"/>`;
+  const grid = [15, 30, 45, 60, 75, 90].map((t) => `<line class="mo-tick" x1="${px(t)}" x2="${px(t)}" y1="4" y2="${H2 - 12}"/><text x="${px(t)}" y="${H2 - 2}" text-anchor="middle">${t}'</text>`).join("");
+  const ys = [0.5, 1, 1.5, 2, 2.5, 3, 4].filter((v) => v < top).map((v) => `<text x="1" y="${(+py(v) + 2).toFixed(1)}">${v}</text>`).join("");
+  const dots = goals.map(([side, t, v, tip]) => `<circle class="race-goal ${side}" cx="${px(t)}" cy="${py(v)}" r="2.6"><title>${esc(tip)}</title></circle>`).join("");
+  return h`<h3 class="maph">xG race</h3>
+    ${raw(`<svg class="momentum race-svg" viewBox="0 0 ${W2} ${H2}" role="img" aria-label="xG race">${grid}${ys}${line("away")}${line("home")}${dots}</svg>`)}
+    <div class="mapcap"><span>solid: ${esc(m.home.name)} ${tot.home.toFixed(2)}</span><span>dashed: ${esc(m.away.name)} ${tot.away.toFixed(2)}</span></div>
+    <p class="sub">Each step is a shot, sized by its xG. Circles are goals. A side well above the other for long spells made the better chances, whatever the score says.</p>`;
 }
