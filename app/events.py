@@ -50,10 +50,30 @@ BLANK = dict(
 )
 
 
+def where(play, flip=False):
+    """
+    Pitch position of a play, 0-100 both ways, in the attacking frame of
+    play.team (x=100 is the goal they attack). flip=True gives the other
+    side's frame, e.g. for the player who won a foul.
+    """
+    x, y = play.get("fieldPositionX"), play.get("fieldPositionY")
+    if x is None or y is None:
+        return None
+    x2, y2 = play.get("fieldPosition2X"), play.get("fieldPosition2Y")
+    if flip:
+        x, y = 100 - x, 100 - y
+        x2 = None if x2 is None else 100 - x2
+        y2 = None if y2 is None else 100 - y2
+    r = lambda v: None if v is None else round(float(v), 1)
+    return [r(x), r(y), r(x2), r(y2)]
+
+
 class Players:
     """Roster lookup by (normalised) name, both teams."""
 
     def __init__(self, rosters):
+        self.acts = []    # [seconds, team id, kind, x, y, player id]
+        self.shots = []   # dicts, see read()
         self.by_name = {}
         self.by_last = {}
         self.all = []
@@ -94,6 +114,23 @@ class Players:
 
 def _names(play):
     return [(p.get("athlete") or {}).get("displayName") for p in (play or {}).get("participants", [])]
+
+
+def _act(players, t, rec, kind, p):
+    if rec and p:
+        players.acts.append([t, rec["team"], kind, p[0], p[1], rec["id"]])
+
+
+def _shot(players, c, play, rec, what, t, team, pen=False):
+    p = where(play)
+    if not p:
+        return
+    players.shots.append({
+        "t": t, "m": (c.get("time") or {}).get("displayValue") or "", "team": team, "pid": rec["id"],
+        "name": rec["short"], "k": what, "pen": bool(pen), "head": "header" in (c.get("text") or "").lower(),
+        "x": p[0], "y": p[1], "x2": p[2], "y2": p[3],
+    })
+    players.acts.append([t, team, "shot" if what != "goal" else "goal", p[0], p[1], rec["id"]])
 
 
 def read(summary, now_seconds=None, finished=False):
@@ -142,6 +179,8 @@ def read(summary, now_seconds=None, finished=False):
                 if len(names) > 1:
                     bump(names[1], "assists")
             goals.append((t, scoring_team))
+            if scorer and not own:
+                _shot(players, c, play, scorer, "goal", t, scoring_team, "penalty" in text.lower())
             continue
 
         if kind == "substitution" or text.startswith("Substitution"):
@@ -163,14 +202,20 @@ def read(summary, now_seconds=None, finished=False):
             if shooter:
                 if text.startswith("Penalty saved") or text.startswith("Penalty missed"):
                     shooter["ev"]["pen_miss"] += 1
+                    what = "pmiss"
                 elif " hits the " in text and ("post" in low or "bar" in low):
                     shooter["ev"]["wood"] += 1
+                    what = "post"
                 elif text.startswith("Attempt saved") or kind == "shot-on-target":
                     shooter["ev"]["sot"] += 1
+                    what = "saved"
                 elif text.startswith("Attempt blocked") or kind == "shot-blocked":
                     shooter["ev"]["sblk"] += 1
+                    what = "blocked"
                 else:
                     shooter["ev"]["soff"] += 1
+                    what = "off"
+                _shot(players, c, play, shooter, what, t, team_id or shooter["team"], "penalty" in low)
             if len(names) > 1 and "Assisted by" in text:
                 bump(names[1], "key_passes")
             m = SAVED_BY.search(text)
@@ -183,10 +228,12 @@ def read(summary, now_seconds=None, finished=False):
         if kind == "foul" or text.startswith("Foul by") or "wins a free kick" in text:
             m = FOUL_BY.search(text)
             if m:
-                bump(m.group(1), "fouls_c")
+                rec = bump(m.group(1), "fouls_c")
+                _act(players, t, rec, "fc", where(play))
             m = WINS_FK.search(text)
             if m:
-                bump(m.group(1), "fouls_w")
+                rec = bump(m.group(1), "fouls_w")
+                _act(players, t, rec, "fw", where(play, flip=True))
             continue
 
         if kind in ("yellow-card", "red-card") or "is shown the" in text:
@@ -210,7 +257,8 @@ def read(summary, now_seconds=None, finished=False):
             continue
         m = OFFSIDE.search(text)
         if m:
-            bump(m.group(1), "offs")
+            rec = bump(m.group(1), "offs")
+            _act(players, t, rec, "off", where(play))
             continue
         m = HANDBALL.search(text)
         if m:
@@ -220,6 +268,9 @@ def read(summary, now_seconds=None, finished=False):
             m = CORNER_BY.search(text)
             if m:
                 bump(m.group(1), "corners_conc", team=None)
+            p = where(play)
+            if p and team_id:
+                players.acts.append([t, team_id, "cor", p[0], p[1], None])
 
     end = max(last_t, FULL_TIME_SECONDS) if finished else (now_seconds or last_t)
 

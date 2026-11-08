@@ -242,6 +242,8 @@ def normalize(summary, league):
         "timeline": timeline,
         "feed": feed,
         "stats": stats,
+        "shots": [{**{k: v for k, v in sh.items() if k != "team"}, "s": side_of.get(sh["team"])} for sh in players.shots],
+        "acts": [[a[0], side_of.get(a[1]), a[2], a[3], a[4], a[5]] for a in players.acts],
         "motm": best[1] if (best and finished) else None,
         "h2h": h2h[:6],
         "rated": st["state"] != "pre",
