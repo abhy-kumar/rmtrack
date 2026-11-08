@@ -56,3 +56,19 @@ def test_match_endpoint(monkeypatch):
     assert r.json()["away"]["name"] == "Real Madrid"
     assert c.get("/api/match/esp.1/abc").status_code == 400
     assert c.get("/api/match/esp 1!/1").status_code in (400, 404)
+
+
+MORE = json.loads((Path(__file__).parent / "sample_more.json").read_text(encoding="utf-8"))
+
+
+def test_prematch_has_no_ratings():
+    m = normalize(MORE["pre"], "esp.1")
+    assert m["status"]["state"] == "pre" and not m["rated"]
+    assert m["home"]["form"]
+
+
+def test_thin_commentary_still_rates():
+    m = normalize(MORE["w"], "esp.w.1")
+    navarro = next(p for p in m["away"]["xi"] if p["name"] == "Eva Navarro")
+    assert navarro["g"] == 1 and navarro["r"] > 7
+    assert m["home"]["name"] == "Athletic"

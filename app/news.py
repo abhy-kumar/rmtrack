@@ -12,10 +12,14 @@ from urllib.parse import quote_plus
 from defusedxml import ElementTree as ET
 
 from . import espn, translate
+from .events import norm as events_norm
 from .net import cached, client, get_json, get_text
 
 SOURCES = json.loads((Path(__file__).parent / "sources.json").read_text(encoding="utf-8"))
-GNEWS = "https://news.google.com/rss/search?q={q}&hl=es&gl=ES&ceid=ES:es"
+GNEWS = {
+    "es": "https://news.google.com/rss/search?q={q}&hl=es&gl=ES&ceid=ES:es",
+    "en": "https://news.google.com/rss/search?q={q}&hl=en-GB&gl=GB&ceid=GB:en",
+}
 BSKY = "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed"
 OEMBED = "https://publish.twitter.com/oembed"
 TAG = re.compile(r"<[^>]+>")
@@ -49,6 +53,7 @@ def _rss(xml):
             "date": it.findtext("pubDate"),
             "desc": it.findtext("description") or "",
             "source": it.findtext("source"),
+            "by": it.findtext("{http://purl.org/dc/elements/1.1/}creator"),
         }
 
 
@@ -59,13 +64,18 @@ def _date(s):
         return None
 
 
-async def _google(query, label, tier, journalist=None, lang=None):
-    xml = await get_text(GNEWS.format(q=quote_plus(query + " when:7d")))
+async def _google(query, label, tier, journalist=None, lang=None, must=None, only_from=None):
+    xml = await get_text(GNEWS["en" if lang == "en" else "es"].format(q=quote_plus(query + " when:7d")))
     out = []
     for r in _rss(xml):
         title, outlet = r["title"], r["source"] or label
         if " - " in title:
             title, outlet = title.rsplit(" - ", 1)
+        if only_from and only_from.lower() not in outlet.lower():
+            continue
+        title = re.sub(r"\s+-\s+The Athletic$", "", title)
+        if must and not any(w in title.lower() for w in must):
+            continue  # a namesake, or nothing to do with us
         out.append(_item(title, r["link"], _iso(_date(r["date"])), outlet if journalist else label,
                          tier, lang, journalist))
     return out[:15]
@@ -73,8 +83,15 @@ async def _google(query, label, tier, journalist=None, lang=None):
 
 async def _plain_rss(url, label, tier, lang=None):
     xml = await get_text(url)
-    return [_item(r["title"], r["link"], _iso(_date(r["date"])), label, tier, lang, summary=r["desc"])
-            for r in _rss(xml)][:20]
+    known = {events_norm(j["name"]): j for j in SOURCES["journalists"]}
+    out = []
+    for r in _rss(xml):
+        by = (r["by"] or "").strip().title() or None
+        j = known.get(events_norm(by)) if by else None
+        desc = re.sub(r"\s*Leer\s*$", "", unescape(TAG.sub("", r["desc"])).strip())
+        out.append(_item(r["title"], r["link"], _iso(_date(r["date"])), label, j["tier"] if j else tier, lang,
+                         j["name"] if j else by, summary=desc))
+    return out[:25]
 
 
 async def _espn(team, label, tier):
@@ -107,7 +124,7 @@ async def _bluesky(handle, name, tier, words, lang=None):
 
 def _words(team_key):
     return {
-        "men": ["madrid", "bernab"],
+        "men": ["madrid", "bernab", "florentino", "merengue", "valdebebas"],
         "women": ["madrid femenino", "real madrid women"],
         "castilla": ["castilla"],
     }.get(team_key, ["madrid"])
@@ -122,7 +139,8 @@ async def collect(team_key, extra_handles=(), extra_names=()):
             jobs.append(_bluesky(j["bsky"], j["name"], j["tier"], _words(team_key), j.get("lang")))
         if j.get("bsky") and j.get("lang") == "en":
             continue  # posts are enough for this one
-        jobs.append(_google(f"\"{j['name']}\" \"{phrase}\"", j.get("outlet") or j["name"], j["tier"], j["name"], j.get("lang")))
+        jobs.append(_google(f"\"{j['name']}\" \"{phrase}\"", j.get("outlet") or j["name"], j["tier"], j["name"],
+                            j.get("lang"), must=_words(team_key)))
     for o in SOURCES["outlets"]:
         if o.get("only") and team_key not in o["only"]:
             continue
@@ -131,11 +149,12 @@ async def collect(team_key, extra_handles=(), extra_names=()):
         elif o.get("espn"):
             jobs.append(_espn(team, o["name"], o["tier"]))
         elif o.get("gnews"):
-            jobs.append(_google(o["gnews"].replace("{team}", phrase), o["name"], o["tier"], lang=o.get("lang")))
+            jobs.append(_google(o["gnews"].replace("{team}", phrase), o["name"], o["tier"], lang=o.get("lang"),
+                                must=_words(team_key), only_from=o.get("from")))
     for h in extra_handles:
         jobs.append(_bluesky(h, h.split(".")[0], "B", _words(team_key)))
     for n in extra_names:
-        jobs.append(_google(f"\"{n}\" \"{phrase}\"", n, "B", n))
+        jobs.append(_google(f"\"{n}\" \"{phrase}\"", n, "B", n, must=_words(team_key)))
 
     results = await asyncio.gather(*jobs, return_exceptions=True)
     items, seen, failed = [], set(), 0

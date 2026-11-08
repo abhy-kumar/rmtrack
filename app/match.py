@@ -76,8 +76,8 @@ def _team_bits(c):
         score = score.get("displayValue")
     return {
         "id": str(t.get("id") or c.get("id") or ""),
-        "name": t.get("shortDisplayName") or t.get("displayName") or "",
-        "full": t.get("displayName") or "",
+        "name": (t.get("shortDisplayName") or t.get("displayName") or "").strip(),
+        "full": (t.get("displayName") or "").strip(),
         "abbr": t.get("abbreviation") or "",
         "score": None if score in (None, "") else int(float(score)),
         "shootout": c.get("shootoutScore"),

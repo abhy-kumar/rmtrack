@@ -8,10 +8,10 @@
     { "name": "Arancha Rodríguez", "outlet": "COPE", "tier": "A" },
     { "name": "Melchor Ruiz", "outlet": "COPE", "tier": "A" },
     { "name": "José Luis Sánchez", "tier": "A" },
-    { "name": "Fabrizio Romano", "tier": "C", "bsky": "fabriziorom.bsky.social", "lang": "en" }
+    { "name": "Fabrizio Romano", "tier": "C" }
   ],
   "outlets": [
-    { "name": "The Athletic", "tier": "A", "gnews": "site:nytimes.com/athletic \"{team}\"", "lang": "en" },
+    { "name": "The Athletic", "tier": "A", "gnews": "\"{team}\" \"The Athletic\"", "from": "New York Times", "lang": "en" },
     { "name": "Real Madrid CF", "tier": "A", "gnews": "site:realmadrid.com \"{team}\"" },
     { "name": "COPE", "tier": "B", "gnews": "site:cope.es \"{team}\"" },
     { "name": "Marca", "tier": "B", "rss": "https://e00-marca.uecdn.es/rss/futbol/real-madrid.xml", "only": ["men"] },

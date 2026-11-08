@@ -50,7 +50,7 @@ function board(m, { link = false } = {}) {
   const show = revealed(m.id) || m.status.state === "pre";
   const goals = (m.timeline || []).filter((e) => e.k === "goal");
   const who = (side) => goals.filter((g) => g.s === side).map((g) => {
-    const n = (g.x.match(/\. ([^.(]+?) \(/) || [])[1] || "";
+    const n = (g.x.match(/(?:^|\. )([^.(]+?) \(/) || [])[1] || "";
     return `${n.trim()} ${g.m}`;
   }).join(", ");
   const sc = m.status.state === "pre"
@@ -288,6 +288,7 @@ function lineups(m) {
   if (!m.home.xi.length && !m.away.xi.length) return h`<p class="empty">Line-ups aren't out yet. They normally drop about an hour before kick-off.</p>`;
   return h`
     <div class="pitches">${pitch(m.home, m)}${pitch(m.away, m)}</div>
+    ${m.rated && m.feed.length < 40 ? h`<p class="warn">ESPN only has the basic events for this match (goals, cards, subs), so the ratings mostly reflect minutes, goals and the result. Treat them loosely.</p>` : ""}
     ${m.rated ? h`<p class="sub">Ratings start at 6.0 and move with every action. ${m.status.state === "in" ? "Live, so they'll keep moving. " : ""}${m.motm ? "* = player of the match. " : ""}<a href="#/ratings">How they're worked out.</a></p>` : ""}
     <h3 style="margin-top:10px">${m.home.name}</h3>${ratingTable(m.home, m)}
     <h3 style="margin-top:10px">${m.away.name}</h3>${ratingTable(m.away, m)}`;
