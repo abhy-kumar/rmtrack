@@ -39,7 +39,7 @@ async function route(force) {
   }
   document.getElementById("built").textContent = `page drawn in ${Math.round(performance.now() - t0)} ms, last fetch ${lastFetchMs} ms`;
   const title = document.querySelector(".pagehead")?.textContent?.trim();
-  document.title = title ? `${title} · rmtrack` : "rmtrack";
+  document.title = title ? `${title} | rmtrack` : "rmtrack";
 }
 
 function drawTeams() {
@@ -78,7 +78,7 @@ function clock() {
   const now = new Date();
   const s = now.toLocaleTimeString("en-GB", { hour12: false });
   const mad = hhmm(now, "Europe/Madrid");
-  document.getElementById("clock").textContent = userTz === "Europe/Madrid" ? s : `${s} · Madrid ${mad}`;
+  document.getElementById("clock").textContent = userTz === "Europe/Madrid" ? s : `${s} | Madrid ${mad}`;
 }
 
 applyTheme();

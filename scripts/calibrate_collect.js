@@ -11,7 +11,7 @@ const PAIRS = [
   ["esp.1", 401882894, 5868043], ["esp.1", 401882899, 5868038],
   ["esp.1", 401882919, 5868018], ["esp.1", 401882912, 5868025],
 ];
-const norm = s => (s || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/-/g, " ").replace(/[^a-z ]/g, "").trim();
+const norm = s => (s || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/-/g, " ").replace(/[^a-z ]/g, "").trim();
 const KEYS = ["goals","pen_goals","assists","key_passes","sot","soff","sblk","wood","fouls_c","fouls_w","yc","rc","offs","hand","pen_won","pen_conc","pen_miss","own_goals","saves","pen_saves","corners_conc","scored_on","conceded_on"];
 function posGroup(a) {
   a = (a || "").toUpperCase();

@@ -55,15 +55,15 @@ function board(m, { link = false } = {}) {
   }).join(", ");
   const sc = m.status.state === "pre"
     ? h`<div class="sc pre">${hhmm(new Date(m.date))}</div>`
-    : show ? h`<div class="sc">${m.home.score ?? 0}&ndash;${m.away.score ?? 0}</div>` : h`<div class="sc">${veil(m.id)}</div>`;
+    : show ? h`<div class="sc">${m.home.score ?? 0}-${m.away.score ?? 0}</div>` : h`<div class="sc">${veil(m.id)}</div>`;
   const inner = h`
-    <div class="comp">${comp(m.league, m.comp)}${m.round ? " · " + m.round : ""}</div>
+    <div class="comp">${comp(m.league, m.comp)}${m.round ? ", " + m.round : ""}</div>
     <div class="line">
       <div class="tm h">${m.home.name}</div>${sc}<div class="tm a">${m.away.name}</div>
     </div>
     <div class="st">${statusLine(m.status, m.date)}</div>
     ${show && goals.length ? h`<div class="scorers"><div>${who("home")}</div><div>${who("away")}</div></div>` : ""}
-    <div class="meta">${[m.venue, m.city].filter(Boolean).join(", ")}${m.ref ? h` · ref ${m.ref}` : ""}${m.crowd ? h` · ${Number(m.crowd).toLocaleString("en-GB")} crowd` : ""}</div>`;
+    <div class="meta">${[m.venue, m.city].filter(Boolean).join(", ")}${m.ref ? h`, ref ${m.ref}` : ""}${m.crowd ? h`, ${Number(m.crowd).toLocaleString("en-GB")} crowd` : ""}</div>`;
   return link ? h`<div class="board"><a href="#/match/${m.league}/${m.id}" style="text-decoration:none;display:block">${inner}</a></div>` : h`<div class="board">${inner}</div>`;
 }
 
@@ -76,7 +76,7 @@ function formStrip(form) {
 // ---------------------------------------------------------------- home
 
 export async function home(el) {
-  put(el, h`<p class="loading">fetching the latest&hellip;</p>`);
+  put(el, h`<p class="loading">fetching the latest...</p>`);
   let ov;
   try { ov = await api(`/api/overview?team=${prefs.team}`, { ttl: 15 }); }
   catch (e) { put(el, fail("the overview")); return; }
@@ -91,7 +91,7 @@ export async function home(el) {
       const lines = [...m.feed].reverse().filter((f) => !["foul", "offside", "corner", "other"].includes(f.k)).slice(0, 6);
       top = box("live now", h`${board(m, { link: true })}
         ${revealed(m.id) ? h`<ul class="feed">${lines.map((f) => h`<li class="${f.k}"><span class="m">${f.m}</span><span class="x">${f.x}</span></li>`)}</ul>` : ""}
-        <p><a href="#/match/${m.league}/${m.id}">full commentary, line-ups &amp; ratings &raquo;</a></p>`, "updates every 15s");
+        <p><a href="#/match/${m.league}/${m.id}">full commentary, line-ups and ratings</a></p>`, "updates every 15s");
     }
   } else if (next) {
     top = box("next up", h`${board({ ...next, timeline: [] }, { link: true })}
@@ -104,7 +104,7 @@ export async function home(el) {
   if (ov.last) {
     const f = ov.last;
     lastBox = box("last time out", h`${board({ ...f, timeline: [] }, { link: true })}
-      <p style="text-align:center"><a href="#/match/${f.league}/${f.id}/lineups">ratings &raquo;</a> &nbsp; <a href="#/match/${f.league}/${f.id}">commentary &raquo;</a></p>`);
+      <p style="text-align:center"><a href="#/match/${f.league}/${f.id}/lineups">ratings</a> &nbsp; <a href="#/match/${f.league}/${f.id}">commentary</a></p>`);
   }
 
   const upcoming = (ov.next || []).slice(liveF ? 0 : 1, 6);
@@ -161,7 +161,7 @@ function newsItem(it, compact = false) {
   return h`<li>
     <div class="hd"><span class="tier ${t}" title="tier ${t}">${t}</span><a href="${it.url}" target="_blank" rel="noopener noreferrer">${title}</a></div>
     ${it.title_en && !compact ? h`<div class="orig">${it.title}</div>` : ""}
-    <div class="by">${it.kind === "mention" ? h`citing ${it.journalist} · ` : it.journalist && it.journalist !== it.source ? h`${it.journalist} · ` : ""}${it.source}${it.kind === "post" ? " post" : ""} · ${ago(it.published)}${it.title_en ? h` · <span title="translated from ${it.lang || "?"}">translated</span>` : ""}</div>
+    <div class="by">${it.kind === "mention" ? h`citing ${it.journalist}, ` : it.journalist && it.journalist !== it.source ? h`${it.journalist}, ` : ""}${it.source}${it.kind === "post" ? " post" : ""}, ${ago(it.published)}${it.title_en ? h`, <span title="translated from ${it.lang || "?"}">translated</span>` : ""}</div>
   </li>`;
 }
 
@@ -170,7 +170,7 @@ async function homeNews(el) {
     const n = await api(newsUrl(), { ttl: 120 });
     const items = n.items.filter((i) => prefs.tiers[tierOf(i)]).slice(0, 10);
     put(el, box("the wires", h`<ul class="news compact">${items.map((i) => newsItem(i, true))}</ul>
-      <p><a href="#/news">all news &raquo;</a></p>`, n.built ? "as of " + hhmm(new Date(n.built)) : ""));
+      <p><a href="#/news">all news</a></p>`, n.built ? "as of " + hhmm(new Date(n.built)) : ""));
   } catch (e) { put(el, box("the wires", fail("the news"))); }
 }
 
@@ -205,7 +205,7 @@ export async function match(el, league, id, tab = "live") {
     put(el, h`${board(m)}
       <div class="tabs">${tabs.map(([k, label]) => h`<a href="#/match/${league}/${id}/${k}" class="${k === tab ? "on" : ""}">${label}</a>`)}</div>
       <div class="tabbody">${body(m, tab)}</div>
-      <p class="sub">updated ${hhmm(new Date(m.updated))}${m.status.state === "in" ? " · refreshing every 15s" : ""}</p>`);
+      <p class="sub">updated ${hhmm(new Date(m.updated))}${m.status.state === "in" ? ", refreshing every 15s" : ""}</p>`);
     keep.forEach((k) => el.querySelector(`details[data-k="${k}"]`)?.setAttribute("open", ""));
     if (!first) window.scrollTo(0, scrollY);
     wire(el, m);
@@ -258,7 +258,7 @@ function pitch(side, m) {
   if (!xi.length) return h`<div class="pitch"><div class="cap">line-up not out yet</div></div>`;
   const lines = rows.map((r) => xi.filter((p) => p.row === r)).filter((l) => l.length);
   return h`<div class="pitch">
-    <div class="cap">${side.name} ${side.formation ? "· " + side.formation : ""}</div>
+    <div class="cap">${side.name} ${side.formation ? "(" + side.formation + ")" : ""}</div>
     ${lines.map((l) => h`<div class="ln">${l.map((p) => h`<div class="pl" title="${p.name}">
       ${m.rated && p.r != null ? rt(p.r, p.id === m.motm ? "motm" : "") : ""}
       <span class="no">${p.no}</span><span class="nm">${p.short.replace(/^\p{Lu}\. /u, "")}${revealed(m.id) && p.g ? ` ${p.g > 1 ? p.g : ""}G` : ""}${revealed(m.id) && p.rc ? " R" : ""}</span></div>`)}</div>`)}
@@ -397,7 +397,7 @@ export async function tables(el, league) {
   league = leagues.includes(league) ? league : leagues[0];
   put(el, h`<h1 class="pagehead">Tables</h1>
     <div class="tabs">${leagues.map((l) => h`<a href="#/table/${l}" class="${l === league ? "on" : ""}">${comp(l)}</a>`)}</div>
-    <div class="tabbody" id="tb"><p class="loading">loading&hellip;</p></div>`);
+    <div class="tabbody" id="tb"><p class="loading">loading...</p></div>`);
   const tb = el.querySelector("#tb");
   try {
     const t = await api(`/api/table/${league}`, { ttl: 300 });
@@ -428,7 +428,7 @@ export async function newsPage(el) {
       <select id="src"><option value="">every source</option></select>
       <select id="dayp"><option value="">today's wire</option></select>
     </div>
-    <div id="nl"><p class="loading">fetching the wires&hellip;</p></div>`);
+    <div id="nl"><p class="loading">fetching the wires...</p></div>`);
 
   let data = null, archive = null;
   const list = el.querySelector("#nl");
@@ -463,7 +463,7 @@ export async function newsPage(el) {
     if (!txt) return;
     const isUrl = /^https?:\/\//.test(txt);
     const btn = el.querySelector("#pastego");
-    btn.disabled = true; btn.textContent = "working…";
+    btn.disabled = true; btn.textContent = "working...";
     try {
       const r = await fetch("/api/paste", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(isUrl ? { url: txt } : { text: txt }) }).then((r) => r.json());
@@ -491,7 +491,7 @@ function pinHtml(p) {
   return h`<div class="pin"><button class="x" data-unpin="${p.at}" title="remove">x</button>
     <div>${p.text_en || p.text}</div>
     ${!same ? h`<div class="orig">${p.text}</div>` : ""}
-    <div class="by">${p.author || "unknown"} · pinned ${ago(p.at)}${p.url ? h` · <a href="${p.url}" target="_blank" rel="noopener noreferrer">source</a>` : ""}</div></div>`;
+    <div class="by">${p.author || "unknown"}, pinned ${ago(p.at)}${p.url ? h`, <a href="${p.url}" target="_blank" rel="noopener noreferrer">source</a>` : ""}</div></div>`;
 }
 
 // ---------------------------------------------------------------- season data
@@ -530,7 +530,7 @@ const POS_ORDER = { G: 0, GK: 0, D: 1, M: 2, F: 3 };
 const POS_NAME = ["Goalkeepers", "Defenders", "Midfielders", "Forwards"];
 
 export async function squad(el) {
-  put(el, h`<p class="loading">loading the squad and this season's numbers&hellip;</p>`);
+  put(el, h`<p class="loading">loading the squad and this season's numbers...</p>`);
   let sq, s;
   try { [sq, s] = await Promise.all([api(`/api/squad?team=${prefs.team}`, { ttl: 600 }), seasonData()]); }
   catch (e) { put(el, fail("the squad")); return; }
@@ -547,7 +547,7 @@ export async function squad(el) {
     if (p.injuries?.length) warn.push(h`<div class="warn"><span class="inj">INJ</span> <b>${p.name}</b>: ${p.injuries[0].detail || p.injuries[0].status || "injured"}${p.injuries[0].back ? h`, back around ${day(new Date(p.injuries[0].back))}` : ""}</div>`);
     groups[POS_ORDER[p.pos?.[0]] ?? 2].push({ p, st });
   }
-  put(el, h`<h1 class="pagehead">Squad <small>${TEAM_NAMES[prefs.team]}${sq.coach ? " · coach " + sq.coach : ""}</small></h1>
+  put(el, h`<h1 class="pagehead">Squad <small>${TEAM_NAMES[prefs.team]}${sq.coach ? ", coach " + sq.coach : ""}</small></h1>
     ${warn.length ? box("availability", warn) : ""}
     ${groups.map((g, i) => g.length ? h`<div class="box flat"><h2>${POS_NAME[i]}</h2><div class="in scroll"><table class="t">
       <tr><th>#</th><th>player</th><th class="n hide-s">age</th><th class="hide-s">nat.</th><th class="n">apps</th><th class="n">min</th><th class="n">G</th><th class="n">A</th><th class="n hide-s">Y</th><th class="c">avg</th></tr>
@@ -564,7 +564,7 @@ export async function squad(el) {
 // ---------------------------------------------------------------- player
 
 export async function player(el, pid) {
-  put(el, h`<p class="loading">loading&hellip;</p>`);
+  put(el, h`<p class="loading">loading...</p>`);
   const s = await seasonData();
   const st = playerSeason(s, pid);
   const [name, pos] = s.names[pid] || ["Unknown player", ""];
