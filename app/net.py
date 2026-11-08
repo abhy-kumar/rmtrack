@@ -65,3 +65,14 @@ async def cached(key, ttl, make):
             for k, _ in sorted(_store.items(), key=lambda kv: kv[1][0])[:200]:
                 _store.pop(k, None)
         return val
+
+
+def peek(key, ttl):
+    hit = _store.get(key)
+    if hit and time.monotonic() - hit[0] < ttl:
+        return hit[1]
+    return None
+
+
+def put(key, val):
+    _store[key] = (time.monotonic(), val)

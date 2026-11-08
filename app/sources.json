@@ -1,0 +1,21 @@
+{
+  "tiers": {
+    "A": "trusted",
+    "B": "solid",
+    "C": "pinch of salt"
+  },
+  "journalists": [
+    { "name": "Arancha Rodríguez", "outlet": "COPE", "tier": "A" },
+    { "name": "Melchor Ruiz", "outlet": "COPE", "tier": "A" },
+    { "name": "José Luis Sánchez", "tier": "A" },
+    { "name": "Fabrizio Romano", "tier": "C", "bsky": "fabriziorom.bsky.social", "lang": "en" }
+  ],
+  "outlets": [
+    { "name": "The Athletic", "tier": "A", "gnews": "site:nytimes.com/athletic \"{team}\"", "lang": "en" },
+    { "name": "Real Madrid CF", "tier": "A", "gnews": "site:realmadrid.com \"{team}\"" },
+    { "name": "COPE", "tier": "B", "gnews": "site:cope.es \"{team}\"" },
+    { "name": "Marca", "tier": "B", "rss": "https://e00-marca.uecdn.es/rss/futbol/real-madrid.xml", "only": ["men"] },
+    { "name": "AS", "tier": "B", "gnews": "site:as.com \"{team}\"" },
+    { "name": "ESPN", "tier": "B", "espn": true, "lang": "en" }
+  ]
+}
