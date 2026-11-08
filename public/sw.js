@@ -1,7 +1,7 @@
 // Keeps the shell available offline and the last API answers as a fallback.
-const SHELL = "rm-shell-1";
+const SHELL = "rm-shell-2";
 const DATA = "rm-data-1";
-const FILES = ["/", "/index.html", "/css/site.css?v=1", "/js/app.js?v=1", "/js/core.js", "/js/views.js", "/js/alerts.js", "/img/icon.svg", "/manifest.webmanifest"];
+const FILES = ["/", "/index.html", "/css/site.css?v=2", "/js/app.js?v=2", "/fonts/iosevka-400.woff2", "/fonts/iosevka-700.woff2", "/js/core.js", "/js/views.js", "/js/alerts.js", "/img/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
