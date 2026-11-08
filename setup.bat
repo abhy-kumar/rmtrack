@@ -19,6 +19,7 @@ if not exist .git if exist rmtrack.bundle (
   git init -q -b main || goto :nogit
   git fetch -q --update-head-ok rmtrack.bundle main:main || goto :nogit
   git reset -q
+  git checkout -q -- .github 2>nul
   git config user.name "abhy-kumar"
   git config user.email "abhiks177@gmail.com"
   git remote add origin https://github.com/abhy-kumar/rmtrack.git
