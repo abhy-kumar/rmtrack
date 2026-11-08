@@ -1,0 +1,1 @@
+{"coef":[-1.22561,-0.0883,1.37475,-0.53889,-0.10635],"penalty":0.76,"features":["const","dist","angle","head","head_dist"],"source":"fitted","fitted_on":0,"fit_m":{"shots":5254,"goals":566,"xg":565.5,"logloss":0.2967,"at":"2026-11-08T21:42:42+00:00"}}
