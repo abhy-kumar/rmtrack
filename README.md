@@ -41,11 +41,21 @@ Every player starts at 6.0 and moves with what the commentary says he did: goals
 
 The weights were fitted against FotMob's ratings for 449 player-matches from early 2026-27. On games the fit hadn't seen we're about 0.3 off FotMob on average. The working is on the site's ratings page. To refit with more games, see `scripts/fit_ratings.py`.
 
+## League stats
+
+`app/league.py` collects every finished LaLiga, Champions League, Liga F and Women's Champions League match, for all teams, not just Madrid. Each match is stored compactly under `public/data/lg/<league>/m/`, and from those it builds `players.json` and `teams.json`. They feed the stats page (600), any player's profile with percentiles against others in his position, the scouting section on match previews, and the xG race on match pages.
+
+xG is our own model (`app/xg.py`): distance, the angle of the goal mouth and whether it was a header, run through a logistic fit. It starts from values tuned to the usual public xG numbers and is refitted on every stored shot each time the league job runs, so it settles in as the season goes on.
+
+Workload on the squad page is worked out from match minutes only: last 7 days against the 3 weeks before, games in the last 14 days, days of rest. It doesn't know about training, so it's a guide.
+
+FBref isn't used: it lost its advanced data in January 2026 and has no API.
+
 ## The archive
 
 `.github/workflows/collect.yml` runs every hour on GitHub (free). It saves each finished match, with full commentary and ratings, as JSON under `public/data/`, plus one news snapshot a day. The site reads those files straight from the CDN, so the season history doesn't depend on ESPN keeping old games around.
 
-Run it by hand with `collect.bat` or `python -m app.collect --news`.
+Run it by hand with `collect.bat` or `python -m app.collect --news --leagues`. The first league run fetches a few hundred matches and takes a few minutes; after that it only picks up new ones.
 
 GitHub pauses scheduled jobs on repos with no commits for 60 days. During the season the job's own commits keep it alive. Over a long summer you might need to re-enable it from the Actions tab.
 
@@ -58,6 +68,8 @@ app/          FastAPI backend (one Vercel function)
   match.py    turns ESPN's match payload into what the pages need
   events.py   reads the text commentary, line by line
   ratings.py  the rating model
+  xg.py       the xG model and its fit
+  league.py   league-wide collection and aggregates
   news.py     news + paste box
   collect.py  archive job
 public/       the site, plain HTML/CSS/JS, no build step
