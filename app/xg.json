@@ -1,0 +1,19 @@
+{
+ "coef": [
+  -1.71694,
+  -0.08535,
+  1.58433,
+  -0.28564,
+  -0.03876
+ ],
+ "penalty": 0.76,
+ "features": [
+  "const",
+  "dist",
+  "angle",
+  "head",
+  "head_dist"
+ ],
+ "source": "prior",
+ "fitted_on": 0
+}

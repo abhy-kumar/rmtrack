@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
-.venv\Scripts\python.exe -m app.collect --news
+.venv\Scripts\python.exe -m app.collect --news --leagues
 pause

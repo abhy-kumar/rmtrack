@@ -121,12 +121,13 @@ def _act(players, t, rec, kind, p):
         players.acts.append([t, rec["team"], kind, p[0], p[1], rec["id"]])
 
 
-def _shot(players, c, play, rec, what, t, team, pen=False):
+def _shot(players, c, play, rec, what, t, team, pen=False, ast=None):
     p = where(play)
     if not p:
         return
     players.shots.append({
         "t": t, "m": (c.get("time") or {}).get("displayValue") or "", "team": team, "pid": rec["id"],
+        "ast": ast["id"] if ast else None,
         "name": rec["short"], "k": what, "pen": bool(pen), "head": "header" in (c.get("text") or "").lower(),
         "x": p[0], "y": p[1], "x2": p[2], "y2": p[3],
     })
@@ -180,7 +181,8 @@ def read(summary, now_seconds=None, finished=False):
                     bump(names[1], "assists")
             goals.append((t, scoring_team))
             if scorer and not own:
-                _shot(players, c, play, scorer, "goal", t, scoring_team, "penalty" in text.lower())
+                helper = players.find(names[1], team_id) if len(names) > 1 else None
+                _shot(players, c, play, scorer, "goal", t, scoring_team, "penalty" in text.lower(), helper)
             continue
 
         if kind == "substitution" or text.startswith("Substitution"):
@@ -215,7 +217,8 @@ def read(summary, now_seconds=None, finished=False):
                 else:
                     shooter["ev"]["soff"] += 1
                     what = "off"
-                _shot(players, c, play, shooter, what, t, team_id or shooter["team"], "penalty" in low)
+                helper = players.find(names[1], team_id) if len(names) > 1 and "Assisted by" in text else None
+                _shot(players, c, play, shooter, what, t, team_id or shooter["team"], "penalty" in low, helper)
             if len(names) > 1 and "Assisted by" in text:
                 bump(names[1], "key_passes")
             m = SAVED_BY.search(text)

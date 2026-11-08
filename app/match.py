@@ -1,7 +1,7 @@
 """Squash ESPN payloads into the small shapes the pages use."""
 from datetime import datetime, timezone
 
-from . import events, ratings
+from . import events, ratings, xg
 
 STAT_ROWS = [
     ("possessionPct", "Possession %"),
@@ -181,6 +181,16 @@ def normalize(summary, league):
     poss = {home["id"]: _num(hst.get("possessionPct")), away["id"]: _num(ast.get("possessionPct"))}
     score = {home["id"]: home["score"] or 0, away["id"]: away["score"] or 0}
 
+    shots = []
+    pxg, pxa = {}, {}
+    xm = xg.for_league(league)
+    for sh in players.shots:
+        v = xg.predict(sh["x"], sh["y"], sh["head"], sh["pen"], xm)
+        shots.append({**{k: val for k, val in sh.items() if k != "team"}, "s": side_of.get(sh["team"]), "xg": v})
+        pxg[sh["pid"]] = pxg.get(sh["pid"], 0) + (v or 0)
+        if sh.get("ast"):
+            pxa[sh["ast"]] = pxa.get(sh["ast"], 0) + (v or 0)
+
     formations = {str((r.get("team") or {}).get("id")): r.get("formation") for r in summary.get("rosters") or []}
     lineups = {"home": {"formation": formations.get(home["id"]), "xi": [], "bench": []},
                "away": {"formation": formations.get(away["id"]), "xi": [], "bench": []}}
@@ -201,6 +211,7 @@ def normalize(summary, league):
             "on": _mins(p["on"]), "off": _mins(p["off"]), "mins": round((p.get("seconds") or 0) / 60),
             "r": rating, "why": why,
             "g": ev["goals"], "a": ev["assists"], "y": ev["yc"], "rc": ev["rc"], "og": ev["own_goals"],
+            "xg": round(pxg.get(p["id"], 0), 2), "xa": round(pxa.get(p["id"], 0), 2),
         }
         lineups[side]["xi" if p["starter"] else "bench"].append(rec)
         if rating is not None and (best is None or rating > best[0]):
@@ -242,7 +253,9 @@ def normalize(summary, league):
         "timeline": timeline,
         "feed": feed,
         "stats": stats,
-        "shots": [{**{k: v for k, v in sh.items() if k != "team"}, "s": side_of.get(sh["team"])} for sh in players.shots],
+        "shots": shots,
+        "xg": {"home": round(sum(x["xg"] or 0 for x in shots if x["s"] == "home"), 2),
+               "away": round(sum(x["xg"] or 0 for x in shots if x["s"] == "away"), 2)},
         "acts": [[a[0], side_of.get(a[1]), a[2], a[3], a[4], a[5]] for a in players.acts],
         "motm": best[1] if (best and finished) else None,
         "h2h": h2h[:6],

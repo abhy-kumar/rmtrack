@@ -5,6 +5,8 @@ JSON under public/data/, which the site then serves as static files.
     python -m app.collect                 # matches, all teams
     python -m app.collect men             # just one team
     python -m app.collect --news          # matches + today's news snapshot
+    python -m app.collect --leagues       # also every team and player in the
+                                          # leagues in app/league.py, refits xG
 
 Runs from .github/workflows/collect.yml (matches hourly, news once a day).
 Safe to run as often as you like: matches already on disk are skipped.
@@ -83,7 +85,7 @@ async def news_snapshot(key):
     return 0
 
 
-async def main(keys, with_news):
+async def main(keys, with_news, with_leagues=False):
     for key in keys:
         print(f"{key}:")
         try:
@@ -96,9 +98,13 @@ async def main(keys, with_news):
             print(f"  {await news_snapshot(key)} new news item(s)")
         except Exception as e:
             print(f"  news failed: {e}")
+    if with_leagues:
+        print("leagues:")
+        from . import league
+        await league.run()
     await client().aclose()
 
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    asyncio.run(main([a for a in args if a in espn.TEAMS] or list(espn.TEAMS), "--news" in sys.argv))
+    asyncio.run(main([a for a in args if a in espn.TEAMS] or list(espn.TEAMS), "--news" in sys.argv, "--leagues" in sys.argv))
