@@ -79,3 +79,7 @@ def test_basketball_is_filtered():
     assert not _football({"title": "El Real Madrid de baloncesto gana en la Euroliga"})
     assert not _football({"title": "x", "title_en": "Real Madrid basketball sign a centre"})
     assert _football({"title": "Feliz cumpleaños, Vinicius"})
+    assert not _football({"title": "El UCAM Murcia CB planta cara pero sucumbe ante el Real Madrid en el último cuarto"})
+    assert not _football({"title": "x", "title_en": "The Bernabeu once again enjoyed the NFL show"})
+    assert not _football({"title": "Real Madrid (F) - Paris FC (F) | Pronóstico y cuotas 10.11.2026"})
+    assert _football({"title": "El Madrid, a cuartos de final de la Copa"})

@@ -25,13 +25,18 @@ OEMBED = "https://publish.twitter.com/oembed"
 TAG = re.compile(r"<[^>]+>")
 MAX_AGE_DAYS = 10
 
-# the basketball section shares the club name; we only want football
+# the basketball section shares the club name, the Bernabeu hosts NFL games,
+# and some outlets pad their feeds with betting previews. None of it is football.
 NOT_FOOTBALL = re.compile(
     r"\b(baloncesto|basket|basketball|euroliga|euroleague|euroligue|liga endesa|acb|nba|canasta|"
     r"copa del rey de baloncesto|supercopa endesa|movistar arena|wizink|llull|tavares|campazzo|"
-    r"hezonja|scariolo)\b",
+    r"hezonja|scariolo|cb|ucam|unicaja|baskonia|joventut|breog[aá]n|valencia basket|lenovo tenerife|"
+    r"partizan|zalgiris|[uú]ltimo cuarto|last quarter|nfl|bengals|falcons|touchdown|quarterback|"
+    r"f[uú]tbol americano|american football|super bowl|pron[oó]stico y cuotas|forecast and odds|"
+    r"apuestas|betting tips?)\b",
     re.I,
 )
+GNEWS_EXCLUDE = " -baloncesto -basket -euroliga -ACB -NFL -apuestas"
 
 
 def _football(it):
@@ -78,7 +83,7 @@ def _date(s):
 
 
 async def _google(query, label, tier, journalist=None, lang=None, must=None, only_from=None):
-    xml = await get_text(GNEWS["en" if lang == "en" else "es"].format(q=quote_plus(query + " when:7d")))
+    xml = await get_text(GNEWS["en" if lang == "en" else "es"].format(q=quote_plus(query + GNEWS_EXCLUDE + " when:7d")))
     out = []
     for r in _rss(xml):
         title, outlet = r["title"], r["source"] or label

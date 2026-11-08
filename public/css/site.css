@@ -120,17 +120,17 @@ h1, h2, h3 { font-family: var(--mono); font-weight: bold; margin: 0; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px 8px;
+  padding: 6px 14px;
   border-bottom: 1px dashed var(--line);
   gap: 10px;
 }
 .logo { text-decoration: none; line-height: 0; color: var(--ink); display: inline-flex; align-items: center; gap: 10px; }
 .logo:hover, .logo:visited { background: none; color: var(--ink); }
-.logo .mark { display: block; }
+.logo .mark { display: block; height: 26px; width: 34px; }
 .logo::before { content: attr(data-page); font: bold 14px var(--mono); line-height: 1; }
 .masthead-r { text-align: right; font-size: 11px; color: var(--mute); }
 #clock { font: 12px var(--mono); }
-#teamsel { margin-top: 4px; }
+#teamsel { margin-top: 2px; }
 #teamsel a { margin-left: 6px; }
 #teamsel a.on { font-weight: bold; text-decoration: none; border-bottom: 2px solid var(--ink); }
 
@@ -465,7 +465,7 @@ svg.momentum text { fill: var(--faint); font: 6px var(--mono); }
   #wrap { border: 0; }
   .cols { grid-template-columns: 1fr; }
   .pitches { grid-template-columns: 1fr; }
-  .logo .mark { width: 76px; height: auto; }
+  .logo .mark { height: 22px; width: 29px; }
   table.fx { table-layout: auto; }
   #nav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   #nav::-webkit-scrollbar { display: none; }
