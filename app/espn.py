@@ -33,6 +33,10 @@ async def summary(league, event_id):
     return await get_json(f"{SITE}/{league}/summary", event=event_id)
 
 
+async def teams(league):
+    return await get_json(f"{SITE}/{league}/teams")
+
+
 async def standings(league):
     return await get_json(f"{V2}/{league}/standings")
 

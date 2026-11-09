@@ -78,6 +78,16 @@ def standings(league):
         for r, (i, n, p) in enumerate(teams)]}}]}
 
 
+# rough kit colours, enough to see the shirts drawn
+KITS = {"83": ("a50044", "004d98"), "86": ("ffffff", "1b1b4b"), "1068": ("cb3524", "ffffff"), "102": ("ffe667", "005187"),
+        "244": ("00954c", "ffffff"), "89": ("0067b1", "ffffff"), "85": ("8ac3ee", "e5254e"), "93": ("ee2523", "ffffff"),
+        "94": ("ffffff", "000000"), "1268": ("ed1c24", "ffffff")}
+
+
+def teams(league):
+    return {"sports": [{"leagues": [{"teams": [{"team": {"id": i, "color": a, "alternateColor": b}} for i, (a, b) in KITS.items()]}]}]}
+
+
 def roster(league, team_id):
     r = next(x for x in SAMPLE["rosters"] if x["team"]["id"] == "86")
     pos = {"G": "G"}
@@ -115,4 +125,5 @@ def install(patch=setattr):
     patch(espn, "summary", lambda *x: a(summary, *x))
     patch(espn, "standings", lambda *x: a(standings, *x))
     patch(espn, "roster", lambda *x: a(roster, *x))
+    patch(espn, "teams", lambda *x: a(teams, *x))
     patch(news, "collect", news_collect)

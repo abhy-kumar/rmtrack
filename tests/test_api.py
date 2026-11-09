@@ -91,3 +91,15 @@ def test_model(client):
     ex = d["xg_examples"]
     assert ex["6m central"] > ex["edge of the box"] > ex["25m"]
     assert ex["6m header"] < ex["6m central"]
+
+
+def test_kits(client):
+    d = client.get("/api/kits").json()
+    assert d["86"] == ["ffffff", "1b1b4b"]
+    assert all(len(c) == 6 for k in d.values() for c in k)
+
+
+def test_kit_of_rejects_junk():
+    from app.match import kit_of
+    assert kit_of({"color": "FFF"}) is None
+    assert kit_of({"color": "AB12CD", "alternateColor": "nope"}) == ["ab12cd", "ab12cd"]

@@ -1,5 +1,6 @@
 """League tables, squads and recent form, shaped for the front end."""
 from . import espn
+from .match import kit_of
 from .net import cached
 from .season import FRIENDLY
 
@@ -107,3 +108,27 @@ def form(done, team_id, n=5):
         if len(out) == n:
             break
     return out
+
+
+async def kits(team_key):
+    """{team id: [colour, alternate]} for every club in the team's competitions."""
+    t = espn.team(team_key)
+    leagues = list(dict.fromkeys([*t["tables"], t["league"]]))
+
+    async def build():
+        out = {}
+        for lg in leagues:
+            try:
+                j = await espn.teams(lg)
+            except Exception:
+                continue
+            for s in j.get("sports") or []:
+                for lgs in s.get("leagues") or []:
+                    for row in lgs.get("teams") or []:
+                        tm = row.get("team") or {}
+                        k = kit_of(tm)
+                        if tm.get("id") and k:
+                            out[str(tm["id"])] = k
+        return out
+
+    return await cached(("kits", team_key), 86400, build)

@@ -109,6 +109,11 @@ async def news_feed(team: str = "men", bsky: str = "", who: str = ""):
     return out(await news.feed(_team(team), handles, names), cdn=300)
 
 
+@app.get("/api/kits")
+async def kits(team: str = "men"):
+    return out(await club.kits(_team(team)), cdn=86400, swr=86400 * 6)
+
+
 @app.get("/api/sources")
 async def sources():
     return out(news.SOURCES, cdn=3600)

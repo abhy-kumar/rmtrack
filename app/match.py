@@ -1,4 +1,5 @@
 """Squash ESPN payloads into the small shapes the pages use."""
+import re
 from datetime import UTC, datetime
 
 from . import events, ratings, xg
@@ -69,6 +70,15 @@ def status_of(comp):
     }
 
 
+HEX = re.compile(r"^[0-9a-fA-F]{6}$")
+
+
+def kit_of(t):
+    """ESPN's two team colours, when it has them and they look like colours."""
+    a, b = str(t.get("color") or ""), str(t.get("alternateColor") or "")
+    return [a.lower(), b.lower() if HEX.match(b) else a.lower()] if HEX.match(a) else None
+
+
 def _team_bits(c):
     t = c.get("team") or {}
     score = c.get("score")
@@ -81,6 +91,7 @@ def _team_bits(c):
         "abbr": t.get("abbreviation") or "",
         "score": None if score in (None, "") else int(float(score)),
         "shootout": c.get("shootoutScore"),
+        "kit": kit_of(t),
     }
 
 
