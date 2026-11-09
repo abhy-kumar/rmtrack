@@ -1,8 +1,8 @@
 // 500 STATS: league table, xG table and player leaderboard for each of the
 // team's competitions, plus a profile page for any player in them.
-import { api, team, h, html, rt, comp, day } from "../core.js?v=7";
-import { put, box, fail, loading, pagehead, tabs, seg } from "../ui.js?v=7";
-import { leagueData, profileRows, minMins, per90, f1, f2, noData, POS, GROUP } from "../league.js?v=7";
+import { api, team, h, html, rt, comp, day } from "../core.js?v=8";
+import { put, box, fail, loading, pagehead, tabs, seg } from "../ui.js?v=8";
+import { leagueData, profileRows, minMins, per90, f1, f2, noData, POS, GROUP } from "../league.js?v=8";
 
 const VIEWS = [["table", "table"], ["xg", "xG table"], ["players", "players"]];
 

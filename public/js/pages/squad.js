@@ -1,8 +1,8 @@
 // 400 SQUAD: who's available, who's carrying a load, then the squad itself.
-import { api, prefs, team, h, day, rt } from "../core.js?v=7";
-import { put, box, fail, loading, pagehead } from "../ui.js?v=7";
-import { seasonData, playerSeason } from "../season.js?v=7";
-import { workloadRows, workloadList, workloadTable, WORKLOAD_NOTE } from "../league.js?v=7";
+import { api, prefs, team, h, day, rt } from "../core.js?v=8";
+import { put, box, fail, loading, pagehead } from "../ui.js?v=8";
+import { seasonData, playerSeason } from "../season.js?v=8";
+import { workloadRows, workloadList, workloadTable, WORKLOAD_NOTE } from "../league.js?v=8";
 
 const POS_ORDER = { G: 0, D: 1, M: 2, F: 3 };
 const POS_NAME = ["Goalkeepers", "Defenders", "Midfielders", "Forwards"];

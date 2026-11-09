@@ -1,5 +1,5 @@
 // Small building blocks shared by every page.
-import { prefs, team, h, html, raw, when, hhmm, comp } from "./core.js?v=7";
+import { prefs, team, h, html, raw, when, hhmm, comp } from "./core.js?v=8";
 
 export const put = (el, v) => { el.innerHTML = html(v); };
 

@@ -1,7 +1,7 @@
 // 200 FIXTURES: upcoming games first; results newest first; friendlies
 // hidden unless asked for.
-import { api, prefs, team, h, day, hhmm, userTz, inSpain, comp } from "../core.js?v=7";
-import { put, fail, loading, pagehead, seg, revealed, veil, result, resultBadge } from "../ui.js?v=7";
+import { api, prefs, team, h, day, hhmm, userTz, inSpain, comp } from "../core.js?v=8";
+import { put, fail, loading, pagehead, seg, revealed, veil, result, resultBadge } from "../ui.js?v=8";
 
 const FRIENDLY = "club.friendly";
 const monthOf = (iso) => new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: userTz }).format(new Date(iso));

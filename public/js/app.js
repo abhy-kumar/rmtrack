@@ -1,16 +1,16 @@
 // Router, header and global behaviour.
-import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz, TEAMS, team } from "./core.js?v=7";
-import { startWatching, onLive } from "./alerts.js?v=7";
-import { fillTicker } from "./newsfeed.js?v=7";
-import { home } from "./pages/home.js?v=7";
-import { match } from "./pages/match.js?v=7";
-import { fixtures } from "./pages/fixtures.js?v=7";
-import { news } from "./pages/news.js?v=7";
-import { squad } from "./pages/squad.js?v=7";
-import { player } from "./pages/player.js?v=7";
-import { stats, profile } from "./pages/stats.js?v=7";
-import { about } from "./pages/about.js?v=7";
-import { settings } from "./pages/settings.js?v=7";
+import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz, TEAMS, team } from "./core.js?v=8";
+import { startWatching, onLive } from "./alerts.js?v=8";
+import { fillTicker } from "./newsfeed.js?v=8";
+import { home } from "./pages/home.js?v=8";
+import { match } from "./pages/match.js?v=8";
+import { fixtures } from "./pages/fixtures.js?v=8";
+import { news } from "./pages/news.js?v=8";
+import { squad } from "./pages/squad.js?v=8";
+import { player } from "./pages/player.js?v=8";
+import { stats, profile } from "./pages/stats.js?v=8";
+import { about } from "./pages/about.js?v=8";
+import { settings } from "./pages/settings.js?v=8";
 
 const main = document.getElementById("main");
 const logo = document.querySelector(".logo");

@@ -1,7 +1,7 @@
 // 600 SETTINGS. Everything lives in this browser's storage.
-import { api, prefs, savePrefs, store, applyTheme, h, userTz, inSpain, flash, TEAMS } from "../core.js?v=7";
-import { beep } from "../alerts.js?v=7";
-import { put, box, pagehead } from "../ui.js?v=7";
+import { api, prefs, savePrefs, store, applyTheme, h, userTz, inSpain, flash, TEAMS } from "../core.js?v=8";
+import { beep } from "../alerts.js?v=8";
+import { put, box, pagehead } from "../ui.js?v=8";
 
 export async function settings(el, onTeamChange) {
   const notif = !("Notification" in window) ? "not supported in this browser" : Notification.permission;

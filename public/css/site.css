@@ -421,11 +421,17 @@ details.why .bd { font: 11px var(--mono); color: var(--mute); padding: 2px 0 4px
 /* ---------- squad / player ---------- */
 .inj { font: bold 10px var(--mono); border: 1px solid var(--ink); padding: 0 3px; }
 .warn { font-size: 11px; border-left: 3px solid var(--ink); padding-left: 6px; margin: 4px 0; }
-svg.spark { width: 100%; height: 80px; display: block; }
-svg.spark .ln { fill: none; stroke: var(--ink); stroke-width: 1.5; }
-svg.spark .gd { stroke: var(--rule); stroke-dasharray: 2 3; }
-svg.spark .dt { fill: var(--paper); stroke: var(--ink); }
-svg.spark text { fill: var(--mute); font: 10px var(--mono); }
+.spark { width: 100%; overflow: hidden; }
+.spark svg { display: block; }
+.spark .ln { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.spark .gd { stroke: var(--rule); stroke-dasharray: 2 3; }
+.spark .dt { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+.spark a:hover .dt, .spark a:focus .dt { fill: var(--ink); }
+.spark a:hover { background: none; }
+.spark text { font: 10px var(--mono); text-anchor: middle; }
+.spark .ax { fill: var(--mute); text-anchor: end; }
+.spark .v { fill: var(--ink); font-weight: bold; }
+.spark .op { fill: var(--mute); }
 
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 12px; }
 .kv dt { color: var(--mute); }

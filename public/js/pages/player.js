@@ -1,9 +1,9 @@
 // A player in our squad: season, rating trend, game log, workload, and a
 // way through to the league-wide profile.
-import { team, store, h, raw, esc, day, rt, comp } from "../core.js?v=7";
-import { put, box, loading, pagehead, revealed, icons } from "../ui.js?v=7";
-import { seasonData, playerSeason } from "../season.js?v=7";
-import { workload } from "../league.js?v=7";
+import { team, store, h, esc, day, rt, comp } from "../core.js?v=8";
+import { put, box, loading, pagehead, revealed, icons } from "../ui.js?v=8";
+import { seasonData, playerSeason } from "../season.js?v=8";
+import { workload } from "../league.js?v=8";
 
 export async function player(el, pid) {
   put(el, loading());
@@ -21,7 +21,7 @@ export async function player(el, pid) {
 
   put(el, h`<p class="crumbs"><a href="#/squad">squad</a></p>${pagehead(name, pos)}
     <div class="cols"><div>
-      ${box("rating by match", rated.length > 1 ? spark(rated) : h`<p class="empty">needs a couple more games</p>`, `${rated.length} rated`)}
+      ${box("rating by match", rated.length > 1 ? h`<div class="spark" data-spark></div>` : h`<p class="empty">needs a couple more games</p>`, `${rated.length} rated`)}
       <section class="box flat"><h2>game log</h2><div class="in scroll"><table class="t fx">
         <colgroup><col style="width:120px"><col><col style="width:50px"><col style="width:80px"><col style="width:70px"><col style="width:56px"></colgroup>
         <tr><th>date</th><th>match</th><th class="n">min</th><th></th><th class="c">rating</th><th class="c">you</th></tr>
@@ -46,16 +46,46 @@ export async function player(el, pid) {
         ${w.flags.length ? h`<p class="warn">${w.flags.join(", ")}</p>` : ""}
         <p class="sub"><a href="#/about">What these mean.</a></p>`)}
     </aside></div>`);
+  const slot = el.querySelector("[data-spark]");
+  if (slot) drawSpark(slot, rated);
 }
 
-function spark(pts) {
-  const W = 300, H = 80, pad = 14;
-  const xs = (i) => pad + (i * (W - pad * 2)) / Math.max(1, pts.length - 1);
-  const ys = (r) => H - pad - ((r - 4) / 6) * (H - pad * 2);
-  const path = pts.map((p, i) => `${i ? "L" : "M"}${xs(i).toFixed(1)},${ys(p.r).toFixed(1)}`).join(" ");
-  return raw(`<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="rating trend">
-    ${[6, 7, 8].map((v) => `<line class="gd" x1="${pad}" x2="${W - pad}" y1="${ys(v)}" y2="${ys(v)}"/><text x="0" y="${ys(v) + 3}">${v}</text>`).join("")}
-    <path class="ln" d="${path}"/>
-    ${pts.map((p, i) => `<circle class="dt" r="2.5" cx="${xs(i).toFixed(1)}" cy="${ys(p.r).toFixed(1)}"><title>${esc(p.m.home.abbr + " v " + p.m.away.abbr + ": " + p.r)}</title></circle>`).join("")}
-  </svg>`);
+const opponent = (m) => (/real madrid/i.test(m.home.name) ? m.away : m.home).abbr;
+
+// Drawn at the box's real pixel width so dots stay round and labels stay
+// readable; redrawn when the box changes size.
+function drawSpark(slot, pts) {
+  const draw = () => {
+    const W = Math.max(240, Math.floor(slot.clientWidth));
+    const H = 130, left = 26, right = 18, top = 18, bottom = 22;
+    const lo = Math.min(6, Math.floor(Math.min(...pts.map((p) => p.r))));
+    const hi = Math.max(8, Math.ceil(Math.max(...pts.map((p) => p.r))));
+    const step = (W - left - right) / Math.max(1, pts.length - 1);
+    const xs = (i) => left + (pts.length === 1 ? (W - left - right) / 2 : i * step);
+    const ys = (r) => top + ((hi - r) / (hi - lo)) * (H - top - bottom);
+    const roomy = step >= 30;
+    const grid = [];
+    for (let v = lo; v <= hi; v++) {
+      grid.push(`<line class="gd" x1="${left}" x2="${W - right}" y1="${ys(v)}" y2="${ys(v)}"/><text class="ax" x="${left - 8}" y="${ys(v) + 3.5}">${v}</text>`);
+    }
+    const path = pts.map((p, i) => `${i ? "L" : "M"}${xs(i).toFixed(1)},${ys(p.r).toFixed(1)}`).join(" ");
+    const dots = pts.map((p, i) => {
+      const x = xs(i).toFixed(1), y = ys(p.r).toFixed(1);
+      const label = `${day(new Date(p.m.date))}, ${p.m.home.abbr} v ${p.m.away.abbr}: ${p.r}`;
+      return `<a href="#/match/${esc(p.m.league)}/${esc(p.m.id)}/ratings"><title>${esc(label)}</title>
+        <circle class="dt" r="4" cx="${x}" cy="${y}"/>
+        ${roomy ? `<text class="v" x="${x}" y="${(y - 8).toFixed(1)}">${p.r.toFixed(1)}</text><text class="op" x="${x}" y="${H - 6}">${esc(opponent(p.m))}</text>` : ""}</a>`;
+    }).join("");
+    slot.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="rating by match, oldest first">
+      ${grid.join("")}<path class="ln" d="${path}"/>${dots}</svg>`;
+  };
+  draw();
+  if ("ResizeObserver" in window) {
+    let last = slot.clientWidth;
+    new ResizeObserver(() => {
+      if (Math.abs(slot.clientWidth - last) < 2) return;
+      last = slot.clientWidth;
+      draw();
+    }).observe(slot);
+  }
 }

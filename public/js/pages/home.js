@@ -1,8 +1,8 @@
 // 100 HOME: what's on now or next, how the last game went, the wires.
-import { api, prefs, team, h, until, hhmm, day, userTz, inSpain, rt, comp } from "../core.js?v=7";
-import { live } from "../alerts.js?v=7";
-import { put, box, fail, loading, board, formStrip, revealed, isMine } from "../ui.js?v=7";
-import { loadNews, visible, newsItem } from "../newsfeed.js?v=7";
+import { api, prefs, team, h, until, hhmm, day, userTz, inSpain, rt, comp } from "../core.js?v=8";
+import { live } from "../alerts.js?v=8";
+import { put, box, fail, loading, board, formStrip, revealed, isMine } from "../ui.js?v=8";
+import { loadNews, visible, newsItem } from "../newsfeed.js?v=8";
 
 const QUIET = ["foul", "offside", "corner", "other"];
 

@@ -1,7 +1,7 @@
 // 300 NEWS: the wire, filters first; the paste-and-translate tool folded away.
-import { prefs, savePrefs, store, staticJson, h, html, esc, ago, flash } from "../core.js?v=7";
-import { put, fail, loading, pagehead } from "../ui.js?v=7";
-import { loadNews, newsItem, tierOf } from "../newsfeed.js?v=7";
+import { prefs, savePrefs, store, staticJson, h, html, esc, ago, flash } from "../core.js?v=8";
+import { put, fail, loading, pagehead } from "../ui.js?v=8";
+import { loadNews, newsItem, tierOf } from "../newsfeed.js?v=8";
 
 export async function news(el) {
   const pins = store("pins") || [];
