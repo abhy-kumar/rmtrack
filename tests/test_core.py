@@ -81,3 +81,13 @@ def test_basketball_is_filtered():
     assert not _football({"title": "x", "title_en": "The Bernabeu once again enjoyed the NFL show"})
     assert not _football({"title": "Real Madrid (F) - Paris FC (F) | Pronóstico y cuotas 10.11.2026"})
     assert _football({"title": "El Madrid, a cuartos de final de la Copa"})
+
+
+def test_key_events_carry_player_ids():
+    m = normalize(SAMPLE, "esp.1")
+    goals = [e for e in m["timeline"] if e["k"] == "goal"]
+    assert goals and all(e["p"][0][0] for e in goals)
+    ids = {p["id"] for side in ("home", "away") for p in m[side]["xi"] + m[side]["bench"]}
+    assert {e["p"][0][0] for e in goals} <= ids
+    subs = [e for e in m["timeline"] if e["k"] == "sub"]
+    assert all(len(e["p"]) == 2 for e in subs)

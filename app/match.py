@@ -163,9 +163,10 @@ def normalize(summary, league):
     name_side = {events.norm(home["full"]): "home", events.norm(away["full"]): "away"}
 
     # commentary
-    feed = []
+    feed, plays = [], []
     for c in sorted(summary.get("commentary") or [], key=lambda c: c.get("sequence", 0)):
         play = c.get("play") or {}
+        plays.append(play)
         kind = _kind((play.get("type") or {}).get("type", ""), c.get("text", ""))
         feed.append({
             "m": (c.get("time") or {}).get("displayValue") or "",
@@ -181,6 +182,7 @@ def normalize(summary, league):
     if st["state"] == "in":
         now = st["seconds"] or (feed[-1]["t"] if feed else 0)
     players, _, _ = events.read(summary, now_seconds=now, finished=finished)
+    _tag_people(feed, plays, players)
     poss = {home["id"]: _num(hst.get("possessionPct")), away["id"]: _num(ast.get("possessionPct"))}
     score = {home["id"]: home["score"] or 0, away["id"]: away["score"] or 0}
 
@@ -265,6 +267,20 @@ def normalize(summary, league):
         "rated": st["state"] != "pre",
         "updated": datetime.now(UTC).isoformat(timespec="seconds"),
     }
+
+
+TAGGED = ("goal", "yellow", "red", "penmiss", "sub")
+
+
+def _tag_people(feed, plays, players):
+    """Give key events the ids and short names of the people in them, so the
+    page can link them. For goals that's scorer then assister; subs are in, out."""
+    for f, play in zip(feed, plays):
+        if f["k"] not in TAGGED:
+            continue
+        recs = [players.find((p.get("athlete") or {}).get("displayName")) for p in play.get("participants") or []]
+        if any(recs):
+            f["p"] = [[r["id"], r["short"]] if r else None for r in recs]
 
 
 def _num(v):
