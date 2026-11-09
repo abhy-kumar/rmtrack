@@ -115,23 +115,33 @@ function fmt(tz, opts) {
   return (fmtCache[k] ||= new Intl.DateTimeFormat("en-GB", { timeZone: tz, ...opts }));
 }
 
-export function hhmm(d, tz = userTz) {
+// The times setting: "both" (mine, Madrid underneath), "local" or "madrid".
+// Every date and time on the site goes through viewTz, so the setting holds
+// everywhere without each page having to remember it.
+export const viewTz = () => (prefs.times === "madrid" && !inSpain ? MADRID : userTz);
+export const madridToo = () => !inSpain && prefs.times !== "local" && prefs.times !== "madrid";
+export const tzName = () => (viewTz() === MADRID ? "Madrid" : userTz.replace(/_/g, " "));
+
+export function hhmm(d, tz = viewTz()) {
   return fmt(tz, { hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
 }
 
-export function day(d, tz = userTz) {
+export function day(d, tz = viewTz()) {
   return fmt(tz, { weekday: "short", day: "numeric", month: "short" }).format(d);
 }
 
-// "Sat 21 Nov, 01:30  (21:00 Madrid)" depending on the time pref
+export function dayYear(d, tz = viewTz()) {
+  return fmt(tz, { day: "numeric", month: "short", year: "numeric" }).format(d);
+}
+
+// "Sat 21 Nov, 01:30 (21:00 Madrid)" depending on the time pref
 export function when(iso, { dayToo = true } = {}) {
   if (!iso) return "tbc";
   const d = new Date(iso);
-  const mine = (dayToo ? day(d) + ", " : "") + hhmm(d);
-  if (inSpain || prefs.times === "local") return mine;
+  const shown = (dayToo ? day(d) + ", " : "") + hhmm(d);
+  if (!madridToo()) return viewTz() === MADRID && !inSpain ? shown + " Madrid" : shown;
   const md = (dayToo && day(d, MADRID) !== day(d) ? day(d, MADRID) + " " : "") + hhmm(d, MADRID);
-  if (prefs.times === "madrid") return md + " Madrid";
-  return h`${mine} <span class="sub">(${md} Madrid)</span>`;
+  return h`${shown} <span class="sub">(${md} Madrid)</span>`;
 }
 
 export function until(iso) {

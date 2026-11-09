@@ -1,10 +1,10 @@
 // Match centre. Four tabs, and which one opens depends on the state of the
 // game: preview before kick-off, live commentary during, ratings after.
-import { api, prefs, savePrefs, store, h, html, when, hhmm, day, rt } from "../core.js?v=9";
-import { beep } from "../alerts.js?v=9";
-import { put, fail, loading, board, tabs, revealed, veil, isMine, icons, resultBadge, personLink, teamLink, feedLine } from "../ui.js?v=9";
-import { shotMap, momentum, territory, playerMap, xgRace } from "../maps.js?v=9";
-import { scouting } from "../league.js?v=9";
+import { api, prefs, savePrefs, store, h, html, when, hhmm, dayYear, rt } from "../core.js?v=10";
+import { beep } from "../alerts.js?v=10";
+import { put, fail, loading, board, tabs, revealed, veil, isMine, icons, resultBadge, personLink, teamLink, feedLine } from "../ui.js?v=10";
+import { shotMap, momentum, territory, playerMap, xgRace } from "../maps.js?v=10";
+import { scouting } from "../league.js?v=10";
 
 const LEGACY = { lineups: "ratings", maps: "stats", before: "preview" };
 
@@ -177,14 +177,14 @@ function teamStats(m) {
 // ---------------------------------------------------------------- preview
 
 function preview(m) {
-  const row = (f) => h`<tr><td>${f.date ? day(new Date(f.date)) : ""}</td><td>${f.at === "@" ? "at " : "v "}${f.opp}</td><td class="n">${f.score}</td><td class="c">${resultBadge(f.res)}</td></tr>`;
+  const row = (f) => h`<tr><td>${f.date ? dayYear(new Date(f.date)) : ""}</td><td>${f.at === "@" ? "at " : "v "}${f.opp}</td><td class="n">${f.score}</td><td class="c">${resultBadge(f.res)}</td></tr>`;
   const form = (side) => h`<div><h3>${teamLink(side)}</h3>${side.form?.length ? h`<table class="t fx"><colgroup><col style="width:110px"><col><col style="width:56px"><col style="width:36px"></colgroup>${side.form.map(row)}</table>` : h`<p class="empty">no recent games listed</p>`}</div>`;
   return h`
     ${m.status.state === "pre" ? h`<p>Kick-off ${when(m.date)}. Line-ups usually land about an hour before.</p>` : ""}
     <div id="scout">${loading("scouting")}</div>
     <h3 class="maph">Recent form</h3>
     <div class="cols2">${form(m.home)}${form(m.away)}</div>
-    ${m.h2h?.length ? h`<h3 class="maph">Last meetings</h3><table class="t">${m.h2h.map((g) => h`<tr><td>${g.date ? day(new Date(g.date)) : ""}</td><td>${g.comp || ""}</td><td class="n"><b>${g.score}</b></td></tr>`)}</table>` : ""}`;
+    ${m.h2h?.length ? h`<h3 class="maph">Last meetings</h3><table class="t">${m.h2h.map((g) => h`<tr><td>${g.date ? dayYear(new Date(g.date)) : ""}</td><td>${g.comp || ""}</td><td class="n"><b>${g.score}</b></td></tr>`)}</table>` : ""}`;
 }
 
 // ---------------------------------------------------------------- behaviour

@@ -1,8 +1,8 @@
 // 500 STATS: league table, xG table and player leaderboard for each of the
 // team's competitions, plus a profile page for any player in them.
-import { api, team, h, html, rt, comp, day } from "../core.js?v=9";
-import { put, box, fail, loading, pagehead, tabs, seg, teamHref, resultBadge } from "../ui.js?v=9";
-import { leagueData, profileRows, minMins, per90, f1, f2, noData, POS, GROUP } from "../league.js?v=9";
+import { api, team, h, html, rt, comp, day } from "../core.js?v=10";
+import { put, box, fail, loading, pagehead, tabs, seg, teamHref, resultBadge, revealed } from "../ui.js?v=10";
+import { leagueData, profileRows, minMins, per90, f1, f2, noData, POS, GROUP } from "../league.js?v=10";
 
 const VIEWS = [["table", "table"], ["xg", "xG table"], ["players", "players"]];
 
@@ -32,7 +32,7 @@ export async function stats(el, lg, view = "table") {
 function lastFive(logs, id) {
   const log = logs?.[id];
   if (!log?.length) return "";
-  return h`<span class="form">${log.slice(-5).map(([mid, , opp, ha, gf, ga]) => {
+  return h`<span class="form">${log.slice(-5).filter(([mid]) => revealed(mid)).map(([mid, , opp, ha, gf, ga]) => {
     const r = gf > ga ? "W" : gf < ga ? "L" : "D";
     return resultBadge(r, `#/match/${logs.lg}/${mid}`, `${ha === "h" ? "v" : "at"} ${opp} ${gf}-${ga}`);
   })}</span>`;

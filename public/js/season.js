@@ -1,6 +1,6 @@
 // This season's competitive games for the selected team: the static
 // archive plus anything newer from the API, merged by match id.
-import { api, staticJson, prefs } from "./core.js?v=9";
+import { api, staticJson, prefs } from "./core.js?v=10";
 
 const memo = {};
 

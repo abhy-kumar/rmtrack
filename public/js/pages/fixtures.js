@@ -1,10 +1,10 @@
 // 200 FIXTURES: upcoming games first; results newest first; friendlies
 // hidden unless asked for.
-import { api, prefs, team, h, day, hhmm, userTz, inSpain, comp } from "../core.js?v=9";
-import { put, fail, loading, pagehead, seg, revealed, result, resultBadge, isMine } from "../ui.js?v=9";
+import { api, prefs, team, h, day, hhmm, viewTz, tzName, madridToo, inSpain, comp, MADRID } from "../core.js?v=10";
+import { put, fail, loading, pagehead, seg, revealed, result, resultBadge, isMine } from "../ui.js?v=10";
 
 const FRIENDLY = "club.friendly";
-const monthOf = (iso) => new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: userTz }).format(new Date(iso));
+const monthOf = (iso) => new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: viewTz() }).format(new Date(iso));
 
 export async function fixtures(el, view) {
   put(el, loading());
@@ -36,7 +36,7 @@ export async function fixtures(el, view) {
     ${view === "upcoming" ? h`<div class="row">
       <a class="btn" href="webcal://${location.host}/api/calendar.ics?team=${prefs.team}">subscribe in my calendar</a>
       <a class="btn" href="/api/calendar.ics?team=${prefs.team}" download>.ics file</a>
-      ${!inSpain ? h`<span class="sub">Times in ${userTz.replace(/_/g, " ")}, Madrid time underneath.</span>` : ""}</div>` : ""}
+      ${!inSpain ? h`<span class="sub">Times in ${tzName()}${madridToo() ? ", Madrid time underneath" : ""}. <a href="#/settings">change</a></span>` : ""}</div>` : ""}
     ${!rows.length ? h`<p class="empty">Nothing here with those filters.</p>` : ""}
     ${months.map(([mo, fs]) => h`<section class="box flat"><h2>${mo}<small>${fs.length} ${fs.length === 1 ? "match" : "matches"}</small></h2><div class="in"><div class="fx-list">
       ${fs.map((f) => row(f))}</div></div></section>`)}`);
@@ -58,7 +58,7 @@ function row(f) {
   const extra = [
     st === "in" && h`<span class="live">LIVE</span> ${f.status.clock || ""}`,
     odd && f.status.detail,
-    st === "pre" && !inSpain && prefs.times !== "local" && `${hhmm(d, "Europe/Madrid")} Madrid`,
+    st === "pre" && madridToo() && `${hhmm(d, MADRID)} Madrid`,
     st === "pre" && f.tv?.length && f.tv.join(", "),
   ].filter(Boolean);
   return h`<a class="fx-row ${st === "in" ? "now" : ""}" href="#/match/${f.league}/${f.id}">

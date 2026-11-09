@@ -1,17 +1,17 @@
 // Router, header and global behaviour.
-import { prefs, savePrefs, applyTheme, hhmm, userTz, TEAMS, team } from "./core.js?v=9";
-import { startWatching, onLive } from "./alerts.js?v=9";
-import { fillTicker } from "./newsfeed.js?v=9";
-import { home } from "./pages/home.js?v=9";
-import { match } from "./pages/match.js?v=9";
-import { fixtures } from "./pages/fixtures.js?v=9";
-import { news } from "./pages/news.js?v=9";
-import { squad } from "./pages/squad.js?v=9";
-import { player } from "./pages/player.js?v=9";
-import { stats, profile } from "./pages/stats.js?v=9";
-import { about } from "./pages/about.js?v=9";
-import { teamPage } from "./pages/team.js?v=9";
-import { settings } from "./pages/settings.js?v=9";
+import { prefs, savePrefs, applyTheme, hhmm, userTz, inSpain, MADRID, TEAMS, team } from "./core.js?v=10";
+import { startWatching, onLive } from "./alerts.js?v=10";
+import { fillTicker } from "./newsfeed.js?v=10";
+import { home } from "./pages/home.js?v=10";
+import { match } from "./pages/match.js?v=10";
+import { fixtures } from "./pages/fixtures.js?v=10";
+import { news } from "./pages/news.js?v=10";
+import { squad } from "./pages/squad.js?v=10";
+import { player } from "./pages/player.js?v=10";
+import { stats, profile } from "./pages/stats.js?v=10";
+import { about } from "./pages/about.js?v=10";
+import { teamPage } from "./pages/team.js?v=10";
+import { settings } from "./pages/settings.js?v=10";
 
 const main = document.getElementById("main");
 const logo = document.querySelector(".logo");
@@ -145,8 +145,10 @@ document.addEventListener("keydown", (e) => {
 
 function clock() {
   const now = new Date();
-  const s = now.toLocaleTimeString("en-GB", { hour12: false });
-  document.getElementById("clock").textContent = userTz === "Europe/Madrid" ? s : `${s} | Madrid ${hhmm(now, "Europe/Madrid")}`;
+  const s = now.toLocaleTimeString("en-GB", { hour12: false, timeZone: userTz });
+  const madrid = now.toLocaleTimeString("en-GB", { hour12: false, timeZone: MADRID });
+  const text = inSpain || prefs.times === "local" ? s : prefs.times === "madrid" ? `Madrid ${madrid}` : `${s} | Madrid ${hhmm(now, MADRID)}`;
+  document.getElementById("clock").textContent = text;
 }
 
 applyTheme();

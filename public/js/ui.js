@@ -1,5 +1,5 @@
 // Small building blocks shared by every page.
-import { prefs, team, TEAMS, h, html, raw, when, hhmm, day, until, inSpain, comp } from "./core.js?v=9";
+import { prefs, team, TEAMS, h, html, raw, when, hhmm, day, until, madridToo, comp, MADRID } from "./core.js?v=10";
 
 export const put = (el, v) => { el.innerHTML = html(v); };
 
@@ -115,7 +115,7 @@ export function board(m, { countdown = false } = {}) {
   const score = pre
     ? h`<a class="sc" href="${href}">${d ? hhmm(d) : "tbc"}</a>`
     : show ? h`<a class="sc" href="${href}">${m.home.score ?? 0}-${m.away.score ?? 0}</a>` : h`<span class="sc">${veil(m.id)}</span>`;
-  const madrid = pre && d && !inSpain && prefs.times !== "local" ? h`, ${hhmm(d, "Europe/Madrid")} Madrid` : "";
+  const madrid = pre && d && madridToo() ? h`, ${hhmm(d, MADRID)} Madrid` : "";
   const status = pre && d && !/postp|cancel|suspend/i.test(m.status.detail || "")
     ? h`<span class="when">${day(d)}</span>${madrid}`
     : statusLine(m.status, m.date);

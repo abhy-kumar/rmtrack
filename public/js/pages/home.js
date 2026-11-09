@@ -1,8 +1,8 @@
 // 100 HOME: what's on now or next, how the last game went, the wires.
-import { api, prefs, team, h, until, hhmm, userTz, inSpain, rt, comp } from "../core.js?v=9";
-import { live } from "../alerts.js?v=9";
-import { put, box, fail, loading, board, formStrip, revealed, isMine, matchList, actions, personLink, teamHref, feedLine } from "../ui.js?v=9";
-import { loadNews, visible, newsItem } from "../newsfeed.js?v=9";
+import { api, prefs, team, h, until, hhmm, tzName, inSpain, rt, comp } from "../core.js?v=10";
+import { live } from "../alerts.js?v=10";
+import { put, box, fail, loading, board, formStrip, revealed, isMine, matchList, actions, personLink, teamHref, feedLine } from "../ui.js?v=10";
+import { loadNews, visible, newsItem } from "../newsfeed.js?v=10";
 
 const QUIET = ["foul", "offside", "corner", "other"];
 
@@ -14,7 +14,7 @@ export async function home(el) {
 
   const liveFixture = ov.live?.[0];
   const next = ov.next?.[0];
-  const upcoming = (ov.next || []).slice(liveFixture ? 0 : 1, 6);
+  const upcoming = (ov.next || []).slice(0, 5);
 
   put(el, h`<div class="cols">
     <div>
@@ -44,7 +44,7 @@ function nextUp(f) {
   const base = `#/match/${f.league}/${f.id}`;
   return box("next up", h`${board({ ...f, timeline: [] }, { countdown: true })}
     ${actions([["preview and scouting", `${base}/preview`], ["all fixtures", "#/fixtures"]])}`,
-  !inSpain ? `times in ${userTz.replace(/_/g, " ")}` : "");
+  !inSpain ? `times in ${tzName()}` : "");
 }
 
 async function liveCard(el, f) {

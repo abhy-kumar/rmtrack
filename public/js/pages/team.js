@@ -1,8 +1,8 @@
 // Any club in our competitions: record, xG, results and its players, built
 // from the league files the collector writes.
-import { api, team, h, day, rt, comp } from "../core.js?v=9";
-import { put, box, loading, pagehead, tabs, resultBadge, actions } from "../ui.js?v=9";
-import { leagueData, f1, f2, per90, POS } from "../league.js?v=9";
+import { api, team, h, day, rt, comp } from "../core.js?v=10";
+import { put, box, loading, pagehead, tabs, resultBadge, actions, revealed } from "../ui.js?v=10";
+import { leagueData, f1, f2, per90, POS } from "../league.js?v=10";
 
 export async function teamPage(el, id, wanted) {
   put(el, loading());
@@ -46,10 +46,11 @@ function results(t, lg) {
     <tr><th>date</th><th>opponent</th><th class="n">score</th><th></th><th class="n">xG</th></tr>
     ${rows.map(([mid, date, opp, ha, gf, ga, xf, xa]) => {
       const r = gf > ga ? "W" : gf < ga ? "L" : "D";
+      const show = revealed(mid);
       return h`<tr><td>${date ? day(new Date(date)) : ""}</td>
         <td><a href="#/match/${lg}/${mid}">${ha === "h" ? "v" : "at"} ${opp}</a></td>
-        <td class="n"><b>${gf}-${ga}</b></td><td class="c">${resultBadge(r, `#/match/${lg}/${mid}`)}</td>
-        <td class="n">${f2(xf)} - ${f2(xa)}</td></tr>`;
+        <td class="n"><b>${show ? `${gf}-${ga}` : "?-?"}</b></td><td class="c">${show ? resultBadge(r, `#/match/${lg}/${mid}`) : ""}</td>
+        <td class="n">${show ? `${f2(xf)} - ${f2(xa)}` : ""}</td></tr>`;
     })}</table></div>` : h`<p class="empty">no games stored yet</p>`, `${rows.length} games`, "flat");
 }
 
