@@ -1,5 +1,6 @@
 // Small building blocks shared by every page.
-import { prefs, team, TEAMS, h, html, raw, when, hhmm, day, until, madridToo, comp, MADRID } from "./core.js?v=10";
+import { prefs, team, TEAMS, h, html, raw, when, hhmm, day, until, madridToo, comp, MADRID } from "./core.js?v=11";
+import { kit } from "./kits.js?v=11";
 
 export const put = (el, v) => { el.innerHTML = html(v); };
 
@@ -53,6 +54,8 @@ export const isMine = (side) => side?.id === team().id;
 export const teamHref = (id) => (id ? `#/team/${id}` : "");
 export const teamLink = (side, label = side?.name) =>
   side?.id ? h`<a href="${teamHref(side.id)}">${label}</a>` : label;
+// a team name with its shirt in front, for tables and lists
+export const teamCell = (side, label = side?.name) => h`<span class="tc">${kit(side, 16)}${teamLink(side, label)}</span>`;
 
 // our players get the squad page, everyone else the league profile
 export function personHref(m, side, id) {
@@ -125,7 +128,7 @@ export function board(m, { countdown = false } = {}) {
     m.crowd && `${Number(m.crowd).toLocaleString("en-GB")} crowd`, pre && m.tv?.length && `on ${m.tv.join(", ")}`].filter(Boolean).join(" | ");
   return h`<div class="board">
     <div class="comp">${comp(m.league, m.comp)}${m.round ? ", " + m.round : ""}</div>
-    <div class="line"><div class="tm h">${teamLink(m.home)}</div>${score}<div class="tm a">${teamLink(m.away)}</div></div>
+    <div class="line"><div class="tm h">${teamLink(m.home)}${kit(m.home, 30, "home")}</div>${score}<div class="tm a">${kit(m.away, 30, "away")}${teamLink(m.away)}</div></div>
     <div class="st">${status}</div>
     ${pre && countdown && d ? h`<div class="count" data-countdown="${m.date}">${until(m.date)}</div>` : ""}
     ${xg}
@@ -137,7 +140,8 @@ export function board(m, { countdown = false } = {}) {
 // compact list of fixtures: who, when, which competition
 export const matchList = (rows) => h`<ul class="mlist">${rows.map((f) => {
   const d = new Date(f.date);
-  return h`<li><a class="vs" href="#/match/${f.league}/${f.id}">${f.home.abbr} v ${f.away.abbr}</a><span class="when">${day(d)}</span>
+  const opp = isMine(f.home) ? f.away : f.home;
+  return h`<li><a class="vs" href="#/match/${f.league}/${f.id}">${kit(opp, 16, opp === f.home ? "home" : "away")} ${f.home.abbr} v ${f.away.abbr}</a><span class="when">${day(d)}</span>
     <span class="cp">${comp(f.league, f.comp)}</span><span class="hm">${hhmm(d)}</span></li>`;
 })}</ul>`;
 

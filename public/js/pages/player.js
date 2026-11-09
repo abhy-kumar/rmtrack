@@ -1,9 +1,9 @@
 // A player in our squad: season, rating trend, game log, workload, and a
 // way through to the league-wide profile.
-import { team, store, h, esc, day, rt, rtClass, comp } from "../core.js?v=10";
-import { put, box, loading, pagehead, revealed, icons, actions } from "../ui.js?v=10";
-import { seasonData, playerSeason } from "../season.js?v=10";
-import { workload } from "../league.js?v=10";
+import { team, store, h, esc, day, rt, rtClass, comp } from "../core.js?v=11";
+import { put, box, loading, pagehead, revealed, icons, actions } from "../ui.js?v=11";
+import { seasonData, playerSeason } from "../season.js?v=11";
+import { workload } from "../league.js?v=11";
 
 export async function player(el, pid) {
   put(el, loading());

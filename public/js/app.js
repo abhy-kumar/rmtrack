@@ -1,17 +1,18 @@
 // Router, header and global behaviour.
-import { prefs, savePrefs, applyTheme, hhmm, userTz, inSpain, MADRID, TEAMS, team } from "./core.js?v=10";
-import { startWatching, onLive } from "./alerts.js?v=10";
-import { fillTicker } from "./newsfeed.js?v=10";
-import { home } from "./pages/home.js?v=10";
-import { match } from "./pages/match.js?v=10";
-import { fixtures } from "./pages/fixtures.js?v=10";
-import { news } from "./pages/news.js?v=10";
-import { squad } from "./pages/squad.js?v=10";
-import { player } from "./pages/player.js?v=10";
-import { stats, profile } from "./pages/stats.js?v=10";
-import { about } from "./pages/about.js?v=10";
-import { teamPage } from "./pages/team.js?v=10";
-import { settings } from "./pages/settings.js?v=10";
+import { prefs, savePrefs, applyTheme, hhmm, userTz, inSpain, MADRID, TEAMS, team } from "./core.js?v=11";
+import { startWatching, onLive } from "./alerts.js?v=11";
+import { fillTicker } from "./newsfeed.js?v=11";
+import { home } from "./pages/home.js?v=11";
+import { match } from "./pages/match.js?v=11";
+import { fixtures } from "./pages/fixtures.js?v=11";
+import { news } from "./pages/news.js?v=11";
+import { squad } from "./pages/squad.js?v=11";
+import { player } from "./pages/player.js?v=11";
+import { stats, profile } from "./pages/stats.js?v=11";
+import { about } from "./pages/about.js?v=11";
+import { teamPage } from "./pages/team.js?v=11";
+import { loadKits } from "./kits.js?v=11";
+import { settings } from "./pages/settings.js?v=11";
 
 const main = document.getElementById("main");
 const logo = document.querySelector(".logo");
@@ -106,8 +107,9 @@ async function route(teamChanged = false) {
   document.title = title ? `${title} | rmtrack` : "rmtrack";
 }
 
-function onTeamChange() {
+async function onTeamChange() {
   drawTeams();
+  await Promise.race([loadKits(), new Promise((r) => setTimeout(r, 1500))]);
   fillTicker();
   if (/^#\/(match|player|pro|team)/.test(location.hash)) location.hash = "#/";
   else route(true);
@@ -157,6 +159,8 @@ clock();
 setInterval(clock, 1000);
 window.addEventListener("hashchange", () => route());
 onLive(() => fillTicker());
+// shirts are decoration: wait a moment for the colours, never longer
+await Promise.race([loadKits(), new Promise((r) => setTimeout(r, 1500))]);
 route(true);
 fillTicker();
 setInterval(fillTicker, 5 * 60 * 1000);

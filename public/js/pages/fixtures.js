@@ -1,7 +1,8 @@
 // 200 FIXTURES: upcoming games first; results newest first; friendlies
 // hidden unless asked for.
-import { api, prefs, team, h, day, hhmm, viewTz, tzName, madridToo, inSpain, comp, MADRID } from "../core.js?v=10";
-import { put, fail, loading, pagehead, seg, revealed, result, resultBadge, isMine } from "../ui.js?v=10";
+import { api, prefs, team, h, day, hhmm, viewTz, tzName, madridToo, inSpain, comp, MADRID } from "../core.js?v=11";
+import { put, fail, loading, pagehead, seg, revealed, result, resultBadge, isMine } from "../ui.js?v=11";
+import { kit } from "../kits.js?v=11";
 
 const FRIENDLY = "club.friendly";
 const monthOf = (iso) => new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: viewTz() }).format(new Date(iso));
@@ -63,9 +64,9 @@ function row(f) {
   ].filter(Boolean);
   return h`<a class="fx-row ${st === "in" ? "now" : ""}" href="#/match/${f.league}/${f.id}">
     <span class="d">${day(d)}<span class="sub">${comp(f.league, f.comp)}</span></span>
-    <span class="h ${isMine(f.home) ? "mine" : ""}">${f.home.name}</span>
+    <span class="h"><span class="${isMine(f.home) ? "mine" : ""}">${f.home.name}</span>${kit(f.home, 18, "home")}</span>
     ${mid}
-    <span class="a ${isMine(f.away) ? "mine" : ""}">${f.away.name}</span>
+    <span class="a">${kit(f.away, 18, "away")}<span class="${isMine(f.away) ? "mine" : ""}">${f.away.name}</span></span>
     <span class="r">${st === "post" && show ? resultBadge(result(f)) : ""}</span>
     ${extra.length ? h`<span class="x">${extra.map((x, i) => h`${i ? " | " : ""}${x}`)}</span>` : ""}
   </a>`;

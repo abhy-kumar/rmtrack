@@ -1,8 +1,9 @@
 // 500 STATS: league table, xG table and player leaderboard for each of the
 // team's competitions, plus a profile page for any player in them.
-import { api, team, h, html, rt, comp, day } from "../core.js?v=10";
-import { put, box, fail, loading, pagehead, tabs, seg, teamHref, resultBadge, revealed } from "../ui.js?v=10";
-import { leagueData, profileRows, minMins, per90, f1, f2, noData, POS, GROUP } from "../league.js?v=10";
+import { api, team, h, html, rt, comp, day } from "../core.js?v=11";
+import { put, box, fail, loading, pagehead, tabs, seg, teamHref, teamCell, resultBadge, revealed } from "../ui.js?v=11";
+import { kit } from "../kits.js?v=11";
+import { leagueData, profileRows, minMins, per90, f1, f2, noData, POS, GROUP } from "../league.js?v=11";
 
 const VIEWS = [["table", "table"], ["xg", "xG table"], ["players", "players"]];
 
@@ -52,7 +53,7 @@ async function standings(el, lg) {
     ${g.rows.map((r, i) => {
       const zone = i && g.rows[i - 1].note !== r.note;
       return h`<tr class="${r.id === mine ? "me" : ""} ${zone ? "zone" : ""} ${zoneOf(r.note)}">
-        <td class="n rk">${r.rank}</td><td><a href="${teamHref(r.id)}" title="${r.note || ""}">${r.name}</a></td>
+        <td class="n rk">${r.rank}</td><td title="${r.note || ""}">${teamCell(r)}</td>
         <td class="n">${r.p}</td><td class="n hide-s">${r.w}</td><td class="n hide-s">${r.d}</td><td class="n hide-s">${r.l}</td>
         <td class="n hide-s">${r.gf}</td><td class="n hide-s">${r.ga}</td><td class="n">${r.gd > 0 ? "+" : ""}${r.gd}</td><td class="n"><b>${r.pts}</b></td>
         <td class="c hide-s">${lastFive(logs, r.id)}</td></tr>`;
@@ -84,7 +85,7 @@ function teamsTable(el, d) {
   put(el, h`<div class="scroll"><table class="t fx">
     <colgroup><col style="width:34px"><col><col style="width:44px"><col style="width:80px"><col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:76px"><col style="width:66px"><col style="width:66px"><col style="width:60px" class="hide-s"><col style="width:66px" class="hide-s"></colgroup>
     <tr><th>#</th><th>team</th><th class="n">P</th><th class="n">W-D-L</th><th class="n">GF</th><th class="n">xGF</th><th class="n">GA</th><th class="n">xGA</th><th class="n" title="non-penalty xG difference per match">npxGD/m</th><th class="n">sh/m</th><th class="n">sh ag/m</th><th class="n hide-s">poss</th><th class="n hide-s">fouls/m</th></tr>
-    ${rows.map((t, i) => h`<tr class="${t.id === mine ? "me" : ""}"><td>${i + 1}</td><td><a href="${teamHref(t.id)}">${t.name}</a></td><td class="n">${t.p}</td><td class="n">${t.w}-${t.d}-${t.l}</td>
+    ${rows.map((t, i) => h`<tr class="${t.id === mine ? "me" : ""}"><td>${i + 1}</td><td>${teamCell(t)}</td><td class="n">${t.p}</td><td class="n">${t.w}-${t.d}-${t.l}</td>
       <td class="n">${t.gf}</td><td class="n">${f1(t.xgf)}</td><td class="n">${t.ga}</td><td class="n">${f1(t.xga)}</td>
       <td class="n"><b>${t.npxgd > 0 ? "+" : ""}${f2(t.npxgd)}</b></td><td class="n">${f1(t.sh / t.p)}</td><td class="n">${f1(t.sha / t.p)}</td>
       <td class="n hide-s">${t.poss ?? "-"}</td><td class="n hide-s">${f1(t.fc / t.p)}</td></tr>`)}
@@ -117,7 +118,7 @@ function playersTable(el, d, lg) {
     el.querySelector("#pl").innerHTML = html(h`<div class="scroll"><table class="t fx">
       <colgroup><col style="width:34px"><col><col style="width:56px"><col style="width:52px" class="hide-s"><col style="width:56px"><col style="width:46px"><col style="width:60px"><col style="width:46px"><col style="width:56px"><col style="width:82px"><col style="width:64px"></colgroup>
       <tr><th>#</th><th>player</th><th>team</th><th class="hide-s">pos</th><th class="n">min</th><th class="n">G</th><th class="n">npxG</th><th class="n">A</th><th class="n">xA</th><th class="n">${state.sort === "r" || state.sort === "mins" || state.sort === "g" ? "npxG+xA/90" : sorts[state.sort][0].replace(" per 90", "/90")}</th><th class="c">rating</th></tr>
-      ${list.map((p, i) => h`<tr><td>${i + 1}</td><td><a href="#/pro/${lg}/${p.id}">${p.name}</a></td><td class="sub"><a href="${teamHref(p.team)}">${d.teams[p.team]?.abbr || ""}</a></td><td class="hide-s sub">${p.pos}</td>
+      ${list.map((p, i) => h`<tr><td>${i + 1}</td><td><a href="#/pro/${lg}/${p.id}">${p.name}</a></td><td class="sub"><span class="tc">${kit({ id: p.team }, 14)}<a href="${teamHref(p.team)}">${d.teams[p.team]?.abbr || ""}</a></span></td><td class="hide-s sub">${p.pos}</td>
         <td class="n">${p.mins}</td><td class="n">${p.g}</td><td class="n">${f2(p.npxg)}</td><td class="n">${p.a}</td><td class="n">${f2(p.xa)}</td>
         <td class="n"><b>${f2(["r", "mins", "g"].includes(state.sort) ? per90(p.npxg + p.xa, p.mins) : fn(p))}</b></td><td class="c">${p.r != null ? rt(p.r) : ""}</td></tr>`)}
     </table></div>`);

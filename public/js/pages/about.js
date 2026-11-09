@@ -1,7 +1,7 @@
 // 700 ABOUT: how the numbers are made and where the data comes from.
-import { api, h } from "../core.js?v=10";
-import { put, box, pagehead } from "../ui.js?v=10";
-import { WORKLOAD_NOTE } from "../league.js?v=10";
+import { api, h } from "../core.js?v=11";
+import { put, box, pagehead } from "../ui.js?v=11";
+import { WORKLOAD_NOTE } from "../league.js?v=11";
 
 export async function about(el) {
   let w = null;

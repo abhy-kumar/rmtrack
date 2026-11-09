@@ -1,8 +1,8 @@
 // 100 HOME: what's on now or next, how the last game went, the wires.
-import { api, prefs, team, h, until, hhmm, tzName, inSpain, rt, comp } from "../core.js?v=10";
-import { live } from "../alerts.js?v=10";
-import { put, box, fail, loading, board, formStrip, revealed, isMine, matchList, actions, personLink, teamHref, feedLine } from "../ui.js?v=10";
-import { loadNews, visible, newsItem } from "../newsfeed.js?v=10";
+import { api, prefs, team, h, until, hhmm, tzName, inSpain, rt, comp } from "../core.js?v=11";
+import { live } from "../alerts.js?v=11";
+import { put, box, fail, loading, board, formStrip, revealed, isMine, matchList, actions, personLink, teamCell, feedLine } from "../ui.js?v=11";
+import { loadNews, visible, newsItem } from "../newsfeed.js?v=11";
 
 const QUIET = ["foul", "offside", "corner", "other"];
 
@@ -81,7 +81,7 @@ async function miniTable(el, league) {
     const from = Math.max(0, Math.min(i - 3, rows.length - 7));
     put(el, box(comp(league, t.name), h`<table class="t fx"><colgroup><col style="width:30px"><col><col style="width:36px"><col style="width:44px"></colgroup>
       <tr><th>#</th><th>team</th><th class="n">P</th><th class="n">Pts</th></tr>
-      ${rows.slice(from, from + 7).map((r) => h`<tr class="${r.id === team().id ? "me" : ""}"><td>${r.rank}</td><td><a href="${teamHref(r.id)}">${r.name}</a></td><td class="n">${r.p}</td><td class="n">${r.pts}</td></tr>`)}
+      ${rows.slice(from, from + 7).map((r) => h`<tr class="${r.id === team().id ? "me" : ""}"><td>${r.rank}</td><td>${teamCell(r)}</td><td class="n">${r.p}</td><td class="n">${r.pts}</td></tr>`)}
       </table>`, h`<a href="#/stats/${league}/table">full</a>`));
   } catch { /* the sidebar can live without it */ }
 }

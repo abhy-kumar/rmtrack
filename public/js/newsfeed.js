@@ -1,7 +1,7 @@
 // News helpers shared by the home page, the news page and the ticker.
-import { api, prefs, h, esc, ago } from "./core.js?v=10";
-import { live } from "./alerts.js?v=10";
-import { revealed } from "./ui.js?v=10";
+import { api, prefs, h, esc, ago } from "./core.js?v=11";
+import { live } from "./alerts.js?v=11";
+import { revealed } from "./ui.js?v=11";
 
 export const tierOf = (item) =>
   prefs.tierOverride[item.journalist] || prefs.tierOverride[item.source] || item.tier || "C";

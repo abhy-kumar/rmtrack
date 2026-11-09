@@ -1,10 +1,11 @@
 // Match centre. Four tabs, and which one opens depends on the state of the
 // game: preview before kick-off, live commentary during, ratings after.
-import { api, prefs, savePrefs, store, h, html, when, hhmm, dayYear, rt } from "../core.js?v=10";
-import { beep } from "../alerts.js?v=10";
-import { put, fail, loading, board, tabs, revealed, veil, isMine, icons, resultBadge, personLink, teamLink, feedLine } from "../ui.js?v=10";
-import { shotMap, momentum, territory, playerMap, xgRace } from "../maps.js?v=10";
-import { scouting } from "../league.js?v=10";
+import { api, prefs, savePrefs, store, h, html, when, hhmm, dayYear, rt } from "../core.js?v=11";
+import { beep } from "../alerts.js?v=11";
+import { put, fail, loading, board, tabs, revealed, veil, isMine, icons, resultBadge, personLink, teamLink, feedLine } from "../ui.js?v=11";
+import { shotMap, momentum, territory, playerMap, xgRace } from "../maps.js?v=11";
+import { kit, numberedKit } from "../kits.js?v=11";
+import { scouting } from "../league.js?v=11";
 
 const LEGACY = { lineups: "ratings", maps: "stats", before: "preview" };
 
@@ -120,7 +121,7 @@ function pitch(side, m) {
     ${lines.map((l) => h`<div class="ln">${l.map((p) => h`<div class="pl" title="${p.name}">
       ${m.rated && p.r != null ? rt(p.r, p.id === m.motm ? "motm" : "") : ""}
       ${show && (p.rc || p.y) ? h`<span class="card ${p.rc ? "r" : "y"}"></span>` : ""}
-      <span class="no">${p.no}</span><span class="nm">${personLink(m, side, p.id, p.short.replace(/^\p{Lu}\. /u, ""))}</span>
+      <span class="no">${numberedKit(side, p.no, 34, side === m.home ? "home" : "away")}</span><span class="nm">${personLink(m, side, p.id, p.short.replace(/^\p{Lu}\. /u, ""))}</span>
       ${show && (p.g || p.a) ? h`<span class="ev">${p.g ? `${p.g > 1 ? p.g : ""}G ` : ""}${p.a ? `${p.a > 1 ? p.a : ""}A` : ""}</span>` : ""}</div>`)}</div>`)}
   </div>`;
 }
@@ -156,7 +157,7 @@ function ratings(m) {
     <div class="pitches">${pitch(m.home, m)}${pitch(m.away, m)}</div>
     ${m.rated && m.feed.length < 40 ? h`<p class="warn">ESPN only has the basic events for this match (goals, cards, subs), so the ratings mostly reflect minutes, goals and the result. Treat them loosely.</p>` : ""}
     ${m.rated ? h`<p class="sub">Ratings start at 6.0 and move with every action${m.status.state === "in" ? "; it's live, so they keep moving" : ""}. ${m.motm ? "* marks the player of the match. " : ""}<a href="#/about">How they're worked out.</a></p>` : ""}
-    ${sides.map((s) => h`<h3 class="maph">${teamLink(s)}</h3>${ratingTable(s, m)}`)}`;
+    ${sides.map((s) => h`<h3 class="maph tc">${kit(s, 20, s === m.home ? "home" : "away")}${teamLink(s)}</h3>${ratingTable(s, m)}`)}`;
 }
 
 // ---------------------------------------------------------------- stats

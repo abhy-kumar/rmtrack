@@ -575,6 +575,18 @@ td .form .res { width: 16px; height: 16px; line-height: 16px; font-size: 10px; }
 .mlist .cp, .mlist .hm { font-size: var(--t-xs); color: var(--mute); }
 .mlist .hm { text-align: right; }
 
+/* ================================================================ shirts */
+
+.kit { display: inline-block; vertical-align: middle; flex: none; color: var(--ink); image-rendering: pixelated; }
+.tc { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.tc a, .tc > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board .tm { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.board .tm.h { justify-content: flex-end; }
+.board .tm.a { justify-content: flex-start; }
+.teamhead { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s3); padding-bottom: var(--s2); border-bottom: 1px solid var(--sh1); box-shadow: 0 1px var(--hl1); }
+.teamhead .pagehead { border: 0; box-shadow: none; margin: 0; padding: 0; }
+.mlist .vs { display: inline-flex; align-items: center; gap: 6px; }
+
 /* ================================================================ fixtures list */
 
 .fx-list { list-style: none; margin: 0; padding: 0; }
@@ -593,8 +605,8 @@ td .form .res { width: 16px; height: 16px; line-height: 16px; font-size: 10px; }
 .fx-row:hover { background: var(--sel); color: var(--ink); }
 .fx-row .d { font-size: var(--t-sm); line-height: 1.3; }
 .fx-row .d .sub { display: block; font-size: var(--t-xs); }
-.fx-row .h { text-align: right; font-weight: 700; }
-.fx-row .a { font-weight: 700; }
+.fx-row .h, .fx-row .a { font-weight: 700; display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.fx-row .h { justify-content: flex-end; text-align: right; }
 .fx-row .mine { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .fx-row .s {
   text-align: center; font: 700 var(--t-md)/26px var(--mono);
@@ -651,15 +663,12 @@ td .form .res { width: 16px; height: 16px; line-height: 16px; font-size: 10px; }
 .pl { width: 76px; text-align: center; font-size: var(--t-xs); line-height: 1.25; color: #fff; position: relative; text-shadow: 0 1px 2px rgba(0, 0, 0, .7); }
 .pl a { color: #fff; text-decoration: none; }
 .pl a:hover { background: none; text-decoration: underline; }
-.pl .no {
-  display: inline-block; width: 28px; height: 28px; line-height: 28px; border-radius: 50%;
-  background: #fafafa; color: #111; font-weight: 700; text-shadow: none;
-  box-shadow: inset -2px -2px rgba(0, 0, 0, .25), 0 1px 2px rgba(0, 0, 0, .5);
-}
-.pitch.them .pl .no { background: #1b1b1b; color: #f2f2f2; box-shadow: inset 2px 2px rgba(255, 255, 255, .15), 0 1px 2px rgba(0, 0, 0, .5); }
+.pl .no { display: inline-block; line-height: 0; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .6)); }
+.pl .no .kit { color: #111; }
+.pl .no text { text-shadow: none; }
 .pl .nm { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
-.pl .rt { position: absolute; top: -8px; left: calc(50% + 8px); min-width: 30px; font-size: 10px; line-height: 15px; text-shadow: none; }
-.pl .card { position: absolute; top: -2px; left: calc(50% - 22px); }
+.pl .rt { position: absolute; top: -8px; left: calc(50% + 10px); min-width: 30px; font-size: 10px; line-height: 15px; text-shadow: none; }
+.pl .card { position: absolute; top: -2px; left: calc(50% - 26px); }
 .pl .ev { font-size: 10px; font-weight: 700; }
 .pitch .cap { color: #fff; font: 700 var(--t-sm) var(--mono); text-align: center; text-shadow: 0 1px 2px rgba(0, 0, 0, .7); }
 

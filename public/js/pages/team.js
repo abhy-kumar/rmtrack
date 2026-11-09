@@ -1,8 +1,9 @@
 // Any club in our competitions: record, xG, results and its players, built
 // from the league files the collector writes.
-import { api, team, h, day, rt, comp } from "../core.js?v=10";
-import { put, box, loading, pagehead, tabs, resultBadge, actions, revealed } from "../ui.js?v=10";
-import { leagueData, f1, f2, per90, POS } from "../league.js?v=10";
+import { api, team, h, day, rt, comp } from "../core.js?v=11";
+import { put, box, loading, pagehead, tabs, resultBadge, actions, revealed } from "../ui.js?v=11";
+import { leagueData, f1, f2, per90, POS } from "../league.js?v=11";
+import { kit } from "../kits.js?v=11";
 
 export async function teamPage(el, id, wanted) {
   put(el, loading());
@@ -25,7 +26,7 @@ export async function teamPage(el, id, wanted) {
   const npxgd = (t.npxgf - t.npxga) / (t.p || 1);
   const tile = (v, label) => h`<div class="stat"><b>${v}</b><span>${label}</span></div>`;
   put(el, h`<p class="crumbs"><a href="#/stats/${lg}/table">${comp(lg)} table</a></p>
-    ${pagehead(t.name, rank ? `${ordinal(rank.rank)} in ${comp(lg)}, ${rank.pts} pts` : comp(lg))}
+    <div class="teamhead">${kit({ id }, 44)}${pagehead(t.name, rank ? `${ordinal(rank.rank)} in ${comp(lg)}, ${rank.pts} pts` : comp(lg))}</div>
     ${found.length > 1 ? h`${tabs(found.map(([l]) => [l, comp(l), `#/team/${id}/${l}`]), lg)}<div class="tabbody"><div class="pane">` : h`<div>`}
     <div class="statgrid">
       ${tile(t.p, "played")}${tile(`${t.w}-${t.d}-${t.l}`, "won drawn lost")}
