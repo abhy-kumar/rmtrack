@@ -1,5 +1,5 @@
 """Squash ESPN payloads into the small shapes the pages use."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from . import events, ratings, xg
 
@@ -26,7 +26,7 @@ STAT_ROWS = [
 ROWS = ["GK", "DEF", "DM", "MID", "AM", "ATT"]
 
 
-def _row(abbr):
+def pos_row(abbr):
     a = (abbr or "").upper()
     if a in ("G", "GK"):
         return "GK"
@@ -120,6 +120,9 @@ def _stats(summary, home_id, away_id):
     return out, h, a
 
 
+PERIOD_TEXT = ("First Half", "Second Half", "Match ends", "Lineups are", "End of", "Penalty Shootout")
+
+
 def _kind(play_type, text):
     t = text or ""
     if play_type == "goal" or t.startswith("Goal!"):
@@ -142,7 +145,7 @@ def _kind(play_type, text):
         return "offside"
     if play_type == "corner-awarded" or t.startswith("Corner,"):
         return "corner"
-    if t.startswith(("First Half", "Second Half", "Match ends", "Lineups are", "End of", "Penalty Shootout")) or play_type in ("halftime", "end-regular-time"):
+    if t.startswith(PERIOD_TEXT) or play_type in ("halftime", "end-regular-time"):
         return "period"
     return "other"
 
@@ -177,7 +180,7 @@ def normalize(summary, league):
     now = None
     if st["state"] == "in":
         now = st["seconds"] or (feed[-1]["t"] if feed else 0)
-    players, goals, _ = events.read(summary, now_seconds=now, finished=finished)
+    players, _, _ = events.read(summary, now_seconds=now, finished=finished)
     poss = {home["id"]: _num(hst.get("possessionPct")), away["id"]: _num(ast.get("possessionPct"))}
     score = {home["id"]: home["score"] or 0, away["id"]: away["score"] or 0}
 
@@ -207,7 +210,7 @@ def normalize(summary, league):
         ev = p["ev"]
         rec = {
             "id": p["id"], "name": p["name"], "short": p["short"], "no": p["jersey"],
-            "pos": p["pos"], "row": _row(p["pos"]), "side": _side(p["pos"]),
+            "pos": p["pos"], "row": pos_row(p["pos"]), "side": _side(p["pos"]),
             "on": _mins(p["on"]), "off": _mins(p["off"]), "mins": round((p.get("seconds") or 0) / 60),
             "r": rating, "why": why,
             "g": ev["goals"], "a": ev["assists"], "y": ev["yc"], "rc": ev["rc"], "og": ev["own_goals"],
@@ -260,7 +263,7 @@ def normalize(summary, league):
         "motm": best[1] if (best and finished) else None,
         "h2h": h2h[:6],
         "rated": st["state"] != "pre",
-        "updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "updated": datetime.now(UTC).isoformat(timespec="seconds"),
     }
 
 

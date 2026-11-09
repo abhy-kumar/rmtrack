@@ -29,7 +29,9 @@ jobs:
           else
             python -m app.collect --leagues
           fi
+      # still commit whatever was saved when one source failed
       - name: commit
+        if: ${{ !cancelled() }}
         run: |
           git add public/data app/xg.json
           if git diff --cached --quiet; then
@@ -37,4 +39,5 @@ jobs:
             exit 0
           fi
           git -c user.name="abhy-kumar" -c user.email="abhiks177@gmail.com" commit -q -m "data $(date -u +%F)"
+          git pull -q --rebase origin main
           git push

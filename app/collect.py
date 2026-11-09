@@ -13,14 +13,16 @@ Safe to run as often as you like: matches already on disk are skipped.
 """
 import asyncio
 import json
+import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from . import espn, news, season
 from .net import client
 
 ROOT = Path(__file__).resolve().parent.parent / "public" / "data"
+log = logging.getLogger("rmtrack.collect")
 
 
 def _load(path, default):
@@ -50,7 +52,7 @@ async def team_archive(key):
         try:
             m = await season.match(f["league"], f["id"])
         except Exception as e:
-            print(f"  {f['id']}: {e}")
+            log.warning("match %s failed: %s", f["id"], e)
             continue
         if not m["rated"] or not (m["home"]["xi"] or m["away"]["xi"]):
             continue
@@ -61,16 +63,16 @@ async def team_archive(key):
             if pid not in idx["names"] or (v[1] and not idx["names"][pid][1]):
                 idx["names"][pid] = v
         new += 1
-        print(f"  saved {m['id']} {m['home']['abbr']} {m['home']['score']}-{m['away']['score']} {m['away']['abbr']}")
+        log.info("saved %s %s %s-%s %s", m["id"], m["home"]["abbr"], m["home"]["score"], m["away"]["score"], m["away"]["abbr"])
     if new:
         idx["matches"].sort(key=lambda c: c["date"] or "")
-        idx["updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        idx["updated"] = datetime.now(UTC).isoformat(timespec="seconds")
         _save(idx_path, idx)
     return new
 
 
 async def news_snapshot(key):
-    day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    day = datetime.now(UTC).strftime("%Y-%m-%d")
     path = ROOT / key / "news" / f"{day}.json"
     feed = await news.collect(key)
     old = _load(path, {"items": []})
@@ -86,25 +88,30 @@ async def news_snapshot(key):
 
 
 async def main(keys, with_news, with_leagues=False):
+    """Run the archive for each team, then optionally news and the league collector."""
+    failed = False
     for key in keys:
-        print(f"{key}:")
         try:
-            print(f"  {await team_archive(key)} new match(es)")
-        except Exception as e:
-            print(f"  archive failed: {e}")
+            log.info("%s: %d new match(es)", key, await team_archive(key))
+        except Exception:
+            log.exception("%s: archive failed", key)
+            failed = True
         if not with_news:
             continue
         try:
-            print(f"  {await news_snapshot(key)} new news item(s)")
-        except Exception as e:
-            print(f"  news failed: {e}")
+            log.info("%s: %d new news item(s)", key, await news_snapshot(key))
+        except Exception:
+            log.exception("%s: news failed", key)
+            failed = True
     if with_leagues:
-        print("leagues:")
         from . import league
         await league.run()
     await client().aclose()
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    asyncio.run(main([a for a in args if a in espn.TEAMS] or list(espn.TEAMS), "--news" in sys.argv, "--leagues" in sys.argv))
+    keys = [a for a in args if a in espn.TEAMS] or list(espn.TEAMS)
+    sys.exit(asyncio.run(main(keys, "--news" in sys.argv, "--leagues" in sys.argv)))

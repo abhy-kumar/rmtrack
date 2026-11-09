@@ -11,15 +11,17 @@ stored shots, and recompute every xG number with the new fit.
 """
 import asyncio
 import json
+import logging
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from . import espn, events, ratings, xg
-from .match import _row
+from .match import pos_row
 from .net import get_json
 
 ROOT = Path(__file__).resolve().parent.parent / "public" / "data" / "lg"
+log = logging.getLogger("rmtrack.league")
 LEAGUES = {
     "esp.1": "m", "uefa.champions": "m",
     "esp.w.1": "w", "uefa.wchampions": "w",
@@ -74,8 +76,12 @@ def compact(summary, league):
     for k in ("home", "away"):
         c = sides.get(k) or {}
         t = c.get("team") or {}
-        teams[k] = {"id": str(t.get("id") or c.get("id") or ""), "name": (t.get("shortDisplayName") or t.get("displayName") or "").strip(),
-                    "abbr": t.get("abbreviation") or "", "score": int(float(c.get("score") or 0))}
+        teams[k] = {
+            "id": str(t.get("id") or c.get("id") or ""),
+            "name": (t.get("shortDisplayName") or t.get("displayName") or "").strip(),
+            "abbr": t.get("abbreviation") or "",
+            "score": int(float(c.get("score") or 0)),
+        }
     side = {teams["home"]["id"]: 0, teams["away"]["id"]: 1}
     for t in (summary.get("boxscore") or {}).get("teams") or []:
         tid = str((t.get("team") or {}).get("id"))
@@ -95,7 +101,7 @@ def compact(summary, league):
     for p in pl.all:
         if p["team"] not in side or not p.get("seconds"):
             continue
-        opp = [t for t in score if t != p["team"]][0]
+        opp = next(t for t in score if t != p["team"])
         res = (score[p["team"]] > score[opp]) - (score[p["team"]] < score[opp])
         r, _ = ratings.rate(p, res, poss.get(p["team"]), True)
         e = p["ev"]
@@ -123,7 +129,7 @@ async def fetch_new(league):
             try:
                 s = await espn.summary(league, eid)
             except Exception as e:
-                print(f"    {eid}: {e}")
+                log.warning("%s %s failed: %s", league, eid, e)
                 return
         c = compact(s, league)
         if c["players"]:
@@ -152,7 +158,7 @@ def refit(gender):
             continue
         for m in _matches(lg):
             for s in m["shots"]:
-                t, side, pid, ast, x, y, head, pen, k = s
+                _, _, _, _, x, y, head, pen, k = s
                 if not pen and x is not None:
                     shots.append((x, y, head, k == "goal"))
     cur = xg.model()
@@ -165,12 +171,13 @@ def refit(gender):
     if after["logloss"] <= before["logloss"] + 1e-4:
         cur[key] = [round(v, 5) for v in new]
         cur[f"fit_{gender}"] = {"shots": len(shots), "goals": after["goals"], "xg": after["xg"], "logloss": after["logloss"],
-                                "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+                                "at": datetime.now(UTC).isoformat(timespec="seconds")}
         cur["source"] = "fitted"
         xg.PATH.write_text(json.dumps(cur, indent=1), encoding="utf-8")
         xg._model = None
         _save(ROOT.parent / "model" / "xg.json", cur)
-        return f"{gender}: refit on {len(shots)} shots, logloss {before['logloss']} -> {after['logloss']}, xG {after['xg']} vs {after['goals']} goals"
+        return (f"{gender}: refit on {len(shots)} shots, logloss {before['logloss']} -> {after['logloss']}, "
+                f"xG {after['xg']} vs {after['goals']} goals")
     return f"{gender}: new fit no better ({after['logloss']} vs {before['logloss']}), kept"
 
 
@@ -197,7 +204,7 @@ def aggregate(league):
         sh_by, sot_by, box_by = [0, 0], [0, 0], [0, 0]
         pxg, pnpxg, pxa = Counter(), Counter(), Counter()
         for s in m["shots"]:
-            t, side, pid, ast, x, y, head, pen, k = s
+            _, side, pid, ast, x, y, head, pen, k = s
             v = xg.predict(x, y, head, pen, m_xg) or 0
             xg_by[side] += v
             sh_by[side] += 1
@@ -231,9 +238,10 @@ def aggregate(league):
             T["boxa"] += box_by[1 - i]
             if info.get("poss") is not None:
                 T["poss"].append(info["poss"])
-            T["log"].append([m["id"], m["date"], o["abbr"], "h" if i == 0 else "a", gf, ga, round(xg_by[i], 2), round(xg_by[1 - i], 2)])
+            T["log"].append([m["id"], m["date"], o["abbr"], "h" if i == 0 else "a", gf, ga,
+                             round(xg_by[i], 2), round(xg_by[1 - i], 2)])
         for row in m["players"]:
-            get = lambda f: row[idx[f]]
+            get = lambda f, row=row, idx=idx: row[idx[f]]
             side = get("side")
             info, opp = sides[side], sides[1 - side]
             T = teams[info["id"]]
@@ -247,7 +255,7 @@ def aggregate(league):
                                          "rn": 0, "log": []})
             P["team"] = info["id"]  # latest club, for mid-season moves
             if get("pos") and get("pos") != "SUB":
-                pos_seen[pid][_row(get("pos"))] += get("mins")
+                pos_seen[pid][pos_row(get("pos"))] += get("mins")
             P["apps"] += 1
             P["starts"] += get("start")
             P["mins"] += get("mins")
@@ -274,7 +282,7 @@ def aggregate(league):
         T["poss"] = round(sum(T["poss"]) / len(T["poss"]), 1) if T["poss"] else None
         for f in ("xgf", "xga", "npxgf", "npxga"):
             T[f] = round(T[f], 2)
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
     _save(ROOT / league / "players.json", {"lg": league, "updated": now, "players": list(players.values())})
     _save(ROOT / league / "teams.json", {"lg": league, "updated": now, "teams": list(teams.values())})
     return len(players), len(teams)
@@ -286,17 +294,17 @@ async def run(leagues=None, force=False):
     for lg in leagues:
         try:
             new, total = await fetch_new(lg)
-            print(f"  {lg}: {new} new of {total} finished")
+            log.info("%s: %d new of %d finished", lg, new, total)
             if new or force or not (ROOT / lg / "players.json").exists():
                 changed.append(lg)
-        except Exception as e:
-            print(f"  {lg}: collect failed: {e}")
+        except Exception:
+            log.exception("%s: collect failed", lg)
     if not changed:
-        print("  nothing new, aggregates left alone")
+        log.info("leagues: nothing new, aggregates left alone")
         return
     for g in sorted({LEAGUES[lg] for lg in changed}):
-        print("  xg " + refit(g))
+        log.info("xg %s", refit(g))
     for lg in leagues:
         if (ROOT / lg / "m").exists() and (lg in changed or force):
             n, t = aggregate(lg)
-            print(f"  {lg}: {n} players, {t} teams")
+            log.info("%s: %d players, %d teams", lg, n, t)
