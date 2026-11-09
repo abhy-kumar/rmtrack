@@ -1,7 +1,7 @@
 // 200 FIXTURES: upcoming games first; results newest first; friendlies
 // hidden unless asked for.
-import { api, prefs, team, h, day, hhmm, userTz, inSpain, comp } from "../core.js?v=8";
-import { put, fail, loading, pagehead, seg, revealed, veil, result, resultBadge } from "../ui.js?v=8";
+import { api, prefs, team, h, day, hhmm, userTz, inSpain, comp } from "../core.js?v=9";
+import { put, fail, loading, pagehead, seg, revealed, result, resultBadge, isMine } from "../ui.js?v=9";
 
 const FRIENDLY = "club.friendly";
 const monthOf = (iso) => new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: userTz }).format(new Date(iso));
@@ -34,30 +34,39 @@ export async function fixtures(el, view) {
       <label><input type="checkbox" id="fxfr" ${state.friendlies ? "checked" : ""}> friendlies</label>
     </div>
     ${view === "upcoming" ? h`<div class="row">
-      <a class="btn" href="webcal://${location.host}/api/calendar.ics?team=${prefs.team}">add to my calendar</a>
+      <a class="btn" href="webcal://${location.host}/api/calendar.ics?team=${prefs.team}">subscribe in my calendar</a>
       <a class="btn" href="/api/calendar.ics?team=${prefs.team}" download>.ics file</a>
       ${!inSpain ? h`<span class="sub">Times in ${userTz.replace(/_/g, " ")}, Madrid time underneath.</span>` : ""}</div>` : ""}
     ${!rows.length ? h`<p class="empty">Nothing here with those filters.</p>` : ""}
-    ${months.map(([mo, fs]) => h`<section class="box flat"><h2>${mo}</h2><div class="in scroll"><table class="t fx">
-      <colgroup><col style="width:120px"><col style="width:110px"><col><col style="width:90px"><col style="width:48px"></colgroup>
-      ${fs.map((f) => row(f))}</table></div></section>`)}`);
+    ${months.map(([mo, fs]) => h`<section class="box flat"><h2>${mo}<small>${fs.length} ${fs.length === 1 ? "match" : "matches"}</small></h2><div class="in"><div class="fx-list">
+      ${fs.map((f) => row(f))}</div></div></section>`)}`);
 
   el.querySelector("#fxcomp").addEventListener("change", (e) => { state.comp = e.target.value; fixtures(el, view); });
   el.querySelector("#fxfr").addEventListener("change", (e) => { state.friendlies = e.target.checked; fixtures(el, view); });
 }
 
+// One line per match, the whole line is the link. Kick-off time sits where
+// the score will go, so upcoming and finished games read the same way.
 function row(f) {
-  const done = f.status.state === "post";
+  const d = new Date(f.date);
+  const st = f.status.state;
   const show = revealed(f.id);
   const odd = /postp|cancel|suspend/i.test(f.status.detail || "");
-  return h`<tr class="${f.status.state === "in" ? "me" : ""}">
-    <td class="nowrap">${day(new Date(f.date))}<br><span class="sub">${done ? "" : hhmm(new Date(f.date))}</span></td>
-    <td class="sub">${comp(f.league, f.comp)}</td>
-    <td><a href="#/match/${f.league}/${f.id}">${f.home.name} v ${f.away.name}</a>
-      ${!done && !inSpain && prefs.times !== "local" ? h`<br><span class="sub">${hhmm(new Date(f.date), "Europe/Madrid")} Madrid</span>` : ""}
-      ${f.tv?.length && !done ? h`<br><span class="sub">${f.tv.join(", ")}</span>` : ""}</td>
-    <td class="n nowrap">${f.status.state === "pre" ? (odd ? f.status.detail : "") : show ? h`<b>${f.home.score ?? 0}-${f.away.score ?? 0}</b>` : veil(f.id)}
-      ${f.status.state === "in" ? h`<br><span class="live">LIVE</span>` : ""}</td>
-    <td class="c">${done && show ? resultBadge(result(f)) : ""}</td>
-  </tr>`;
+  const mid = st === "pre"
+    ? h`<span class="s pre">${odd ? "off" : hhmm(d)}</span>`
+    : show ? h`<span class="s">${f.home.score ?? 0}-${f.away.score ?? 0}</span>` : h`<span class="s">?-?</span>`;
+  const extra = [
+    st === "in" && h`<span class="live">LIVE</span> ${f.status.clock || ""}`,
+    odd && f.status.detail,
+    st === "pre" && !inSpain && prefs.times !== "local" && `${hhmm(d, "Europe/Madrid")} Madrid`,
+    st === "pre" && f.tv?.length && f.tv.join(", "),
+  ].filter(Boolean);
+  return h`<a class="fx-row ${st === "in" ? "now" : ""}" href="#/match/${f.league}/${f.id}">
+    <span class="d">${day(d)}<span class="sub">${comp(f.league, f.comp)}</span></span>
+    <span class="h ${isMine(f.home) ? "mine" : ""}">${f.home.name}</span>
+    ${mid}
+    <span class="a ${isMine(f.away) ? "mine" : ""}">${f.away.name}</span>
+    <span class="r">${st === "post" && show ? resultBadge(result(f)) : ""}</span>
+    ${extra.length ? h`<span class="x">${extra.map((x, i) => h`${i ? " | " : ""}${x}`)}</span>` : ""}
+  </a>`;
 }

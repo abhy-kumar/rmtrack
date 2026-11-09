@@ -1,7 +1,7 @@
 // Network first for everything; cached copies are only used when offline.
-const SHELL = "rm-shell-8";
+const SHELL = "rm-shell-9";
 const DATA = "rm-data-2";
-const FILES = ["/", "/index.html", "/css/site.css?v=8", "/js/boot.js?v=8", "/js/app.js?v=8", "/img/icon.svg", "/manifest.webmanifest", "/fonts/iosevka-400.woff2", "/fonts/iosevka-700.woff2"];
+const FILES = ["/", "/index.html", "/css/site.css?v=9", "/js/boot.js?v=9", "/js/app.js?v=9", "/img/icon.svg", "/manifest.webmanifest", "/fonts/iosevka-400.woff2", "/fonts/iosevka-700.woff2"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

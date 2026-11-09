@@ -32,7 +32,7 @@ The top bar has six sections. Each has a page number, and typing it on a keyboar
 | 200 fixtures | upcoming and results, calendar export. Every match opens on the tab that matters right now: preview before kick-off, commentary while it's on, ratings after |
 | 300 news | the wires, filtered by trust tier, plus the paste box for tweets |
 | 400 squad | squad by position, availability, and a workload watch for anyone carrying a heavy load |
-| 500 stats | league table, xG table and every player in the league |
+| 500 stats | league table, xG table and every player in the league; every team name opens that team (record, xG, results, players) |
 | 600 settings | team, theme, times, alerts, news sources |
 
 "About the numbers" (700, linked in the footer) explains the ratings, xG and workload.

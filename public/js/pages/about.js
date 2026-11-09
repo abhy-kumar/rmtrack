@@ -1,7 +1,7 @@
 // 700 ABOUT: how the numbers are made and where the data comes from.
-import { api, h } from "../core.js?v=8";
-import { put, box, pagehead } from "../ui.js?v=8";
-import { WORKLOAD_NOTE } from "../league.js?v=8";
+import { api, h } from "../core.js?v=9";
+import { put, box, pagehead } from "../ui.js?v=9";
+import { WORKLOAD_NOTE } from "../league.js?v=9";
 
 export async function about(el) {
   let w = null;
@@ -10,7 +10,7 @@ export async function about(el) {
   const fit = w?.xg?.fit_m;
 
   put(el, h`${pagehead("About the numbers")}
-  <nav class="toc" aria-label="on this page"><a href="#/about" data-jump="ratings">ratings</a> <a href="#/about" data-jump="xg">xG</a> <a href="#/about" data-jump="load">workload</a> <a href="#/about" data-jump="data">data</a></nav>
+  <nav class="toc" aria-label="on this page"><a class="btn" href="#/about" data-jump="ratings">ratings</a> <a class="btn" href="#/about" data-jump="xg">xG</a> <a class="btn" href="#/about" data-jump="load">workload</a> <a class="btn" href="#/about" data-jump="data">data</a></nav>
   <div class="cols"><div class="prose">
     <h2 id="ratings">Player ratings</h2>
     <p>Every player starts on <b>6.0</b>. We read ESPN's minute-by-minute commentary (the same Opta-style feed the TV graphics use) and add or take away a little for everything he's involved in: goals, assists, chances made, shots, fouls won and given away, cards, offsides, saves, goals let in while he was on the pitch.</p>

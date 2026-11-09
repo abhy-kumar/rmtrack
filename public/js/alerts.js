@@ -1,6 +1,6 @@
 // Background watcher: spots kick-off, goals, red cards, HT and FT for the
 // selected team and shouts about them (notification + beep + flash line).
-import { api, prefs, flash, esc } from "./core.js?v=8";
+import { api, prefs, flash, esc } from "./core.js?v=9";
 
 let timer = null;
 let seen = {};          // match id -> { state, goals, reds, period }

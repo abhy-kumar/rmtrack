@@ -1,16 +1,17 @@
 // Router, header and global behaviour.
-import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz, TEAMS, team } from "./core.js?v=8";
-import { startWatching, onLive } from "./alerts.js?v=8";
-import { fillTicker } from "./newsfeed.js?v=8";
-import { home } from "./pages/home.js?v=8";
-import { match } from "./pages/match.js?v=8";
-import { fixtures } from "./pages/fixtures.js?v=8";
-import { news } from "./pages/news.js?v=8";
-import { squad } from "./pages/squad.js?v=8";
-import { player } from "./pages/player.js?v=8";
-import { stats, profile } from "./pages/stats.js?v=8";
-import { about } from "./pages/about.js?v=8";
-import { settings } from "./pages/settings.js?v=8";
+import { prefs, savePrefs, applyTheme, hhmm, userTz, TEAMS, team } from "./core.js?v=9";
+import { startWatching, onLive } from "./alerts.js?v=9";
+import { fillTicker } from "./newsfeed.js?v=9";
+import { home } from "./pages/home.js?v=9";
+import { match } from "./pages/match.js?v=9";
+import { fixtures } from "./pages/fixtures.js?v=9";
+import { news } from "./pages/news.js?v=9";
+import { squad } from "./pages/squad.js?v=9";
+import { player } from "./pages/player.js?v=9";
+import { stats, profile } from "./pages/stats.js?v=9";
+import { about } from "./pages/about.js?v=9";
+import { teamPage } from "./pages/team.js?v=9";
+import { settings } from "./pages/settings.js?v=9";
 
 const main = document.getElementById("main");
 const logo = document.querySelector(".logo");
@@ -18,7 +19,7 @@ const logo = document.querySelector(".logo");
 // page numbers, teletext style; typing three digits jumps there
 const PAGES = { 100: "", 200: "fixtures", 300: "news", 400: "squad", 500: "stats", 600: "settings", 700: "about" };
 // pages that live under a nav section
-const SECTION = { match: "fixtures", player: "squad", pro: "stats", table: "stats", ratings: "about" };
+const SECTION = { match: "fixtures", player: "squad", pro: "stats", team: "stats", table: "stats", ratings: "about" };
 // old addresses that still work
 const REDIRECT = {
   table: (lg) => `#/stats/${lg || team().domestic || "esp.1"}/table`,
@@ -26,7 +27,7 @@ const REDIRECT = {
 };
 
 // how many path parts name the thing on screen; anything after is just a tab
-const TABBED = { match: 3, stats: 2, fixtures: 1 };
+const TABBED = { match: 3, stats: 2, fixtures: 1, team: 2 };
 
 let cleanup = null;
 let seq = 0;
@@ -45,6 +46,7 @@ function render(page, view, a, b, c) {
     case "player": return player(view, a);
     case "stats": return stats(view, a, b);
     case "pro": return profile(view, a, b);
+    case "team": return teamPage(view, a, b);
     case "about": return about(view);
     case "settings": return settings(view, onTeamChange);
     default: return home(view);
@@ -99,7 +101,7 @@ async function route(teamChanged = false) {
   }
   cleanup = done;
   if (sameThing) window.scrollTo(0, keepY);
-  document.getElementById("built").textContent = `page drawn in ${Math.round(performance.now() - t0)} ms, last fetch ${lastFetchMs} ms`;
+  document.getElementById("built").textContent = `drawn in ${Math.round(performance.now() - t0)} ms`;
   const title = view.querySelector(".pagehead")?.firstChild?.textContent?.trim();
   document.title = title ? `${title} | rmtrack` : "rmtrack";
 }
@@ -107,13 +109,13 @@ async function route(teamChanged = false) {
 function onTeamChange() {
   drawTeams();
   fillTicker();
-  if (/^#\/(match|player|pro)/.test(location.hash)) location.hash = "#/";
+  if (/^#\/(match|player|pro|team)/.test(location.hash)) location.hash = "#/";
   else route(true);
 }
 
 function drawTeams() {
   document.getElementById("teamsel").innerHTML = Object.entries(TEAMS)
-    .map(([k, t]) => `<button type="button" data-team="${k}" class="linklike ${prefs.team === k ? "on" : ""}" ${prefs.team === k ? 'aria-pressed="true"' : 'aria-pressed="false"'}>${t.label}</button>`)
+    .map(([k, t]) => `<button type="button" data-team="${k}" class="${prefs.team === k ? "on" : ""}" ${prefs.team === k ? 'aria-pressed="true"' : 'aria-pressed="false"'}>${t.label}</button>`)
     .join("");
 }
 

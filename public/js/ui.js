@@ -1,5 +1,5 @@
 // Small building blocks shared by every page.
-import { prefs, team, h, html, raw, when, hhmm, comp } from "./core.js?v=8";
+import { prefs, team, TEAMS, h, html, raw, when, hhmm, day, until, inSpain, comp } from "./core.js?v=9";
 
 export const put = (el, v) => { el.innerHTML = html(v); };
 
@@ -8,8 +8,8 @@ export const fail = (what) =>
 
 export const loading = (what = "loading") => h`<p class="loading">${what}...</p>`;
 
-export const box = (title, body, aside = "") =>
-  h`<section class="box"><h2>${title}<small>${aside}</small></h2><div class="in">${body}</div></section>`;
+export const box = (title, body, aside = "", cls = "") =>
+  h`<section class="box ${cls}"><h2>${title}<small>${aside}</small></h2><div class="in">${body}</div></section>`;
 
 export const pagehead = (title, sub = "") => h`<h1 class="pagehead">${title}${sub ? h` <small>${sub}</small>` : ""}</h1>`;
 
@@ -43,9 +43,25 @@ document.addEventListener("click", (e) => {
 
 export const veil = (id) => h`<button type="button" class="veil" data-reveal="${id}" title="spoiler mode is on">show score</button>`;
 
-// ---------------------------------------------------------------- results
+// ---------------------------------------------------------------- links
+
+// leagues the collector keeps full data for
+export const DATA_LEAGUES = new Set(Object.values(TEAMS).flatMap((t) => t.leagues));
+export const statLeague = (lg) => (DATA_LEAGUES.has(lg) ? lg : team().domestic || "esp.1");
 
 export const isMine = (side) => side?.id === team().id;
+export const teamHref = (id) => (id ? `#/team/${id}` : "");
+export const teamLink = (side, label = side?.name) =>
+  side?.id ? h`<a href="${teamHref(side.id)}">${label}</a>` : label;
+
+// our players get the squad page, everyone else the league profile
+export function personHref(m, side, id) {
+  if (!id) return "";
+  return isMine(side) ? `#/player/${id}` : `#/pro/${statLeague(m.league)}/${id}`;
+}
+export const personLink = (m, side, id, label) => (id ? h`<a href="${personHref(m, side, id)}">${label}</a>` : label);
+
+// ---------------------------------------------------------------- results
 
 export function result(f) {
   const me = isMine(f.home) ? f.home : f.away;
@@ -54,6 +70,8 @@ export function result(f) {
   return a > b ? "W" : a < b ? "L" : "D";
 }
 
+const RES_WORD = { W: "win", D: "draw", L: "loss" };
+
 export function statusLine(st, date) {
   if (st.state === "in") return h`<span class="live">LIVE</span> ${st.clock || st.detail}`;
   if (st.state === "post") return st.detail || "FT";
@@ -61,39 +79,82 @@ export function statusLine(st, date) {
   return when(date);
 }
 
-export const resultBadge = (r) => h`<span class="form"><span class="${r}">${r}</span></span>`;
+export const resultBadge = (r, href = "", title = "") => (href
+  ? h`<a class="res ${r}" href="${href}" title="${title || RES_WORD[r]}">${r}</a>`
+  : h`<span class="res ${r}" title="${title || RES_WORD[r]}">${r}</span>`);
 
 export function formStrip(form) {
   if (!form?.length) return h`<span class="sub">no games yet</span>`;
   const shown = prefs.spoilers ? form.slice(1) : form;
   return h`<span class="form">${[...shown].reverse().map((f) =>
-    h`<a class="${f.res}" href="#/match/${f.league}/${f.id}" title="${f.opp} ${f.score}">${f.res}</a>`)}</span>`;
+    resultBadge(f.res, `#/match/${f.league}/${f.id}`, `${f.opp} ${f.score}`))}</span>`;
 }
 
-// the scoreboard at the top of match cards and the match page
-export function board(m, { link = false } = {}) {
-  const show = revealed(m.id) || m.status.state === "pre";
-  const goals = (m.timeline || []).filter((e) => e.k === "goal");
-  const who = (side) => goals.filter((g) => g.s === side).map((g) => {
-    const n = (g.x.match(/(?:^|\. )([^.(]+?) \(/) || [])[1] || "";
-    return `${n.trim()} ${g.m}`;
-  }).join(", ");
-  const score = m.status.state === "pre"
-    ? h`<div class="sc pre">${hhmm(new Date(m.date))}</div>`
-    : show ? h`<div class="sc">${m.home.score ?? 0}-${m.away.score ?? 0}</div>` : h`<div class="sc">${veil(m.id)}</div>`;
-  const xg = show && m.xg && m.status.state !== "pre" && m.shots?.length
-    ? h`<div class="xgline">xG ${m.xg.home.toFixed(2)} - ${m.xg.away.toFixed(2)}</div>` : "";
-  const place = [m.venue, m.city].filter(Boolean).join(", ");
-  const inner = h`
+// ---------------------------------------------------------------- scoreboard
+
+const scorerName = (g) => g.p?.[0]?.[1] || ((g.x.match(/(?:^|\. )([^.(]+?) \(/) || [])[1] || "").trim();
+
+function scorers(m, sideKey) {
+  const side = m[sideKey];
+  return m.timeline.filter((e) => e.k === "goal" && e.s === sideKey).map((g) => {
+    const pen = /penalty/i.test(g.x) ? " (pen)" : /own goal/i.test(g.x) ? " (og)" : "";
+    const id = g.p?.[0]?.[0];
+    // an own goal is credited to the side that benefits; the player is on the other one
+    const owner = pen === " (og)" ? m[sideKey === "home" ? "away" : "home"] : side;
+    return h`<li>${personLink(m, owner, id, scorerName(g))} ${g.m}${pen}</li>`;
+  });
+}
+
+// One scoreboard for every state of a match, so a preview and a result look
+// like the same thing. The score (or kick-off time) links to the match.
+export function board(m, { countdown = false } = {}) {
+  const pre = m.status.state === "pre";
+  const show = pre || revealed(m.id);
+  const href = `#/match/${m.league}/${m.id}`;
+  const d = m.date ? new Date(m.date) : null;
+  const score = pre
+    ? h`<a class="sc" href="${href}">${d ? hhmm(d) : "tbc"}</a>`
+    : show ? h`<a class="sc" href="${href}">${m.home.score ?? 0}-${m.away.score ?? 0}</a>` : h`<span class="sc">${veil(m.id)}</span>`;
+  const madrid = pre && d && !inSpain && prefs.times !== "local" ? h`, ${hhmm(d, "Europe/Madrid")} Madrid` : "";
+  const status = pre && d && !/postp|cancel|suspend/i.test(m.status.detail || "")
+    ? h`<span class="when">${day(d)}</span>${madrid}`
+    : statusLine(m.status, m.date);
+  const goals = show && !pre && m.timeline?.some((e) => e.k === "goal");
+  const xg = show && !pre && m.xg && m.shots?.length ? h`<div class="xgline">xG ${m.xg.home.toFixed(2)} - ${m.xg.away.toFixed(2)}</div>` : "";
+  const meta = [[m.venue, m.city].filter(Boolean).join(", "), m.ref && `ref ${m.ref}`,
+    m.crowd && `${Number(m.crowd).toLocaleString("en-GB")} crowd`, pre && m.tv?.length && `on ${m.tv.join(", ")}`].filter(Boolean).join(" | ");
+  return h`<div class="board">
     <div class="comp">${comp(m.league, m.comp)}${m.round ? ", " + m.round : ""}</div>
-    <div class="line"><div class="tm h">${m.home.name}</div>${score}<div class="tm a">${m.away.name}</div></div>
-    <div class="st">${statusLine(m.status, m.date)}</div>
+    <div class="line"><div class="tm h">${teamLink(m.home)}</div>${score}<div class="tm a">${teamLink(m.away)}</div></div>
+    <div class="st">${status}</div>
+    ${pre && countdown && d ? h`<div class="count" data-countdown="${m.date}">${until(m.date)}</div>` : ""}
     ${xg}
-    ${show && goals.length ? h`<div class="scorers"><div>${who("home")}</div><div>${who("away")}</div></div>` : ""}
-    <div class="meta">${place}${m.ref ? h`, ref ${m.ref}` : ""}${m.crowd ? h`, ${Number(m.crowd).toLocaleString("en-GB")} crowd` : ""}</div>`;
-  return link
-    ? h`<div class="board"><a class="cover" href="#/match/${m.league}/${m.id}">${inner}</a></div>`
-    : h`<div class="board">${inner}</div>`;
+    ${goals ? h`<div class="scorers"><ul class="h">${scorers(m, "home")}</ul><div class="ball" title="goals"></div><ul>${scorers(m, "away")}</ul></div>` : ""}
+    ${meta ? h`<div class="meta">${meta}</div>` : ""}
+  </div>`;
 }
 
-export const icons = (p) => h`${[...Array(p.g || 0)].map(() => h`<span class="ico">G</span>`)}${[...Array(p.a || 0)].map(() => h`<span class="ico">A</span>`)}${p.y ? h`<span class="ico y">Y</span>` : ""}${p.rc ? h`<span class="ico r">R</span>` : ""}${p.og ? h`<span class="ico">OG</span>` : ""}`;
+// compact list of fixtures: who, when, which competition
+export const matchList = (rows) => h`<ul class="mlist">${rows.map((f) => {
+  const d = new Date(f.date);
+  return h`<li><a class="vs" href="#/match/${f.league}/${f.id}">${f.home.abbr} v ${f.away.abbr}</a><span class="when">${day(d)}</span>
+    <span class="cp">${comp(f.league, f.comp)}</span><span class="hm">${hhmm(d)}</span></li>`;
+})}</ul>`;
+
+export const actions = (items, cls = "") =>
+  h`<div class="acts ${cls}">${items.filter(Boolean).map(([label, href]) => h`<a class="btn" href="${href}">${label}</a>`)}</div>`;
+
+export function icons(p) {
+  const out = [];
+  if (p.g) out.push(h`<span class="ico g" title="goals">${p.g > 1 ? p.g : ""}G</span>`);
+  if (p.a) out.push(h`<span class="ico" title="assists">${p.a > 1 ? p.a : ""}A</span>`);
+  if (p.og) out.push(h`<span class="ico" title="own goal">OG</span>`);
+  if (p.y) out.push(h`<span class="card y" title="yellow card"></span>`);
+  if (p.rc) out.push(h`<span class="card r" title="red card"></span>`);
+  return out;
+}
+
+// one line of commentary, with a card or sub marker in front where it helps
+const MARK = { yellow: h`<span class="card y"></span>`, red: h`<span class="card r"></span>`, sub: h`<span class="subin"></span>` };
+export const feedLine = (x) =>
+  h`<li class="${x.k}"><span class="m">${x.m}</span><span class="x">${MARK[x.k] || ""}${x.x}</span></li>`;

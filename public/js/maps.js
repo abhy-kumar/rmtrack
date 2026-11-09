@@ -1,7 +1,7 @@
 // Pitch drawings built from the positions in ESPN's commentary.
 // Positions come as 0-100 on both axes, in the attacking frame of the side
 // that made the play: x=100 is the goal they're shooting at.
-import { h, raw, esc } from "./core.js?v=8";
+import { h, raw, esc } from "./core.js?v=9";
 
 const L = 105, W = 68;          // pitch in metres
 const X = (x) => (x / 100) * L;

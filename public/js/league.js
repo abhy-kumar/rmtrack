@@ -1,7 +1,7 @@
 // League-wide numbers: data loading, per-90 metrics and percentiles,
 // opponent scouting and workload. Reads the static files the collector
 // writes under /data/lg/.
-import { staticJson, team, h, day, comp } from "./core.js?v=8";
+import { staticJson, team, h, day, comp } from "./core.js?v=9";
 
 export const POS = { GK: "Goalkeepers", DEF: "Defenders", DM: "Def. midfield", MID: "Midfielders", AM: "Att. midfield", ATT: "Forwards" };
 export const GROUP = { GK: "GK", DEF: "DEF", DM: "MID", MID: "MID", AM: "ATT", ATT: "ATT" }; // peer groups for percentiles

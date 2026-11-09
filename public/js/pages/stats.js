@@ -1,8 +1,8 @@
 // 500 STATS: league table, xG table and player leaderboard for each of the
 // team's competitions, plus a profile page for any player in them.
-import { api, team, h, html, rt, comp, day } from "../core.js?v=8";
-import { put, box, fail, loading, pagehead, tabs, seg } from "../ui.js?v=8";
-import { leagueData, profileRows, minMins, per90, f1, f2, noData, POS, GROUP } from "../league.js?v=8";
+import { api, team, h, html, rt, comp, day } from "../core.js?v=9";
+import { put, box, fail, loading, pagehead, tabs, seg, teamHref, resultBadge } from "../ui.js?v=9";
+import { leagueData, profileRows, minMins, per90, f1, f2, noData, POS, GROUP } from "../league.js?v=9";
 
 const VIEWS = [["table", "table"], ["xg", "xG table"], ["players", "players"]];
 
@@ -17,8 +17,8 @@ export async function stats(el, lg, view = "table") {
   put(el, h`${pagehead("Stats", "tables, xG and every player")}
     ${tabs(lgs.map((l) => [l, comp(l), `#/stats/${l}/${view}`]), lg)}
     <div class="tabbody">
-      ${seg(VIEWS.map(([k, label]) => [k, label, `#/stats/${lg}/${k}`]), view)}
-      <div id="sx">${loading()}</div>
+      <div class="row">${seg(VIEWS.map(([k, label]) => [k, label, `#/stats/${lg}/${k}`]), view)}</div>
+      <div class="pane" id="sx">${loading()}</div>
     </div>`);
   const sx = el.querySelector("#sx");
   if (view === "table") return standings(sx, lg);
@@ -28,24 +28,53 @@ export async function stats(el, lg, view = "table") {
   return teamsTable(sx, d);
 }
 
+// last five from the stored league files, newest on the right
+function lastFive(logs, id) {
+  const log = logs?.[id];
+  if (!log?.length) return "";
+  return h`<span class="form">${log.slice(-5).map(([mid, , opp, ha, gf, ga]) => {
+    const r = gf > ga ? "W" : gf < ga ? "L" : "D";
+    return resultBadge(r, `#/match/${logs.lg}/${mid}`, `${ha === "h" ? "v" : "at"} ${opp} ${gf}-${ga}`);
+  })}</span>`;
+}
+
 async function standings(el, lg) {
   let t;
   try { t = await api(`/api/table/${lg}`, { ttl: 300 }); } catch { put(el, fail("the table")); return; }
+  const d = await leagueData(lg).catch(() => null);
+  const logs = d ? { lg, ...Object.fromEntries(Object.values(d.teams).map((x) => [x.id, x.log])) } : null;
   const mine = team().id;
   put(el, h`<p class="sub">${t.season}</p>${t.groups.map((g) => h`
     ${t.groups.length > 1 ? h`<h3>${g.name}</h3>` : ""}
     <div class="scroll"><table class="t fx">
-    <colgroup><col style="width:40px"><col><col style="width:44px"><col style="width:44px"><col style="width:44px"><col style="width:44px"><col class="hide-s" style="width:50px"><col class="hide-s" style="width:50px"><col style="width:56px"><col style="width:56px"></colgroup>
-    <tr><th class="n">#</th><th>team</th><th class="n">P</th><th class="n">W</th><th class="n">D</th><th class="n">L</th><th class="n hide-s">GF</th><th class="n hide-s">GA</th><th class="n">GD</th><th class="n">Pts</th></tr>
+    <colgroup><col style="width:40px"><col><col style="width:44px"><col class="hide-s" style="width:44px"><col class="hide-s" style="width:44px"><col class="hide-s" style="width:44px"><col class="hide-s" style="width:50px"><col class="hide-s" style="width:50px"><col style="width:56px"><col style="width:56px"><col class="hide-s" style="width:100px"></colgroup>
+    <tr><th class="n">#</th><th>team</th><th class="n">P</th><th class="n hide-s">W</th><th class="n hide-s">D</th><th class="n hide-s">L</th><th class="n hide-s">GF</th><th class="n hide-s">GA</th><th class="n">GD</th><th class="n">Pts</th><th class="c hide-s">last 5</th></tr>
     ${g.rows.map((r, i) => {
       const zone = i && g.rows[i - 1].note !== r.note;
-      const label = r.note && (i === 0 || g.rows[i - 1].note !== r.note);
-      return h`<tr class="${r.id === mine ? "me" : ""} ${zone ? "zone" : ""}">
-        <td class="n">${r.rank}</td><td>${r.name}${label ? h` <span class="sub">${r.note}</span>` : ""}</td>
-        <td class="n">${r.p}</td><td class="n">${r.w}</td><td class="n">${r.d}</td><td class="n">${r.l}</td>
-        <td class="n hide-s">${r.gf}</td><td class="n hide-s">${r.ga}</td><td class="n">${r.gd > 0 ? "+" : ""}${r.gd}</td><td class="n"><b>${r.pts}</b></td></tr>`;
+      return h`<tr class="${r.id === mine ? "me" : ""} ${zone ? "zone" : ""} ${zoneOf(r.note)}">
+        <td class="n rk">${r.rank}</td><td><a href="${teamHref(r.id)}" title="${r.note || ""}">${r.name}</a></td>
+        <td class="n">${r.p}</td><td class="n hide-s">${r.w}</td><td class="n hide-s">${r.d}</td><td class="n hide-s">${r.l}</td>
+        <td class="n hide-s">${r.gf}</td><td class="n hide-s">${r.ga}</td><td class="n">${r.gd > 0 ? "+" : ""}${r.gd}</td><td class="n"><b>${r.pts}</b></td>
+        <td class="c hide-s">${lastFive(logs, r.id)}</td></tr>`;
     })}
-    </table></div>`)}`);
+    </table></div>`)}
+    ${keyline(t.groups)}`);
+}
+
+function zoneOf(note) {
+  if (!note) return "";
+  if (/relegat/i.test(note)) return "z-rel";
+  if (/champions|knockout|round of 16|last 16/i.test(note)) return "z-cl";
+  if (/europa/i.test(note)) return "z-el";
+  if (/conference|play-?off/i.test(note)) return "z-co";
+  return "";
+}
+
+function keyline(groups) {
+  const notes = [...new Set(groups.flatMap((g) => g.rows.map((r) => r.note)).filter(Boolean))];
+  if (!notes.length) return "";
+  const colour = { "z-cl": "var(--r9)", "z-el": "var(--r6)", "z-co": "var(--r7)", "z-rel": "var(--loss)" };
+  return h`<div class="keyline">${notes.filter((n) => zoneOf(n)).map((n) => h`<span><i style="background:${colour[zoneOf(n)]}"></i>${n}</span>`)}</div>`;
 }
 
 function teamsTable(el, d) {
@@ -55,7 +84,7 @@ function teamsTable(el, d) {
   put(el, h`<div class="scroll"><table class="t fx">
     <colgroup><col style="width:34px"><col><col style="width:44px"><col style="width:80px"><col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:76px"><col style="width:66px"><col style="width:66px"><col style="width:60px" class="hide-s"><col style="width:66px" class="hide-s"></colgroup>
     <tr><th>#</th><th>team</th><th class="n">P</th><th class="n">W-D-L</th><th class="n">GF</th><th class="n">xGF</th><th class="n">GA</th><th class="n">xGA</th><th class="n" title="non-penalty xG difference per match">npxGD/m</th><th class="n">sh/m</th><th class="n">sh ag/m</th><th class="n hide-s">poss</th><th class="n hide-s">fouls/m</th></tr>
-    ${rows.map((t, i) => h`<tr class="${t.id === mine ? "me" : ""}"><td>${i + 1}</td><td>${t.name}</td><td class="n">${t.p}</td><td class="n">${t.w}-${t.d}-${t.l}</td>
+    ${rows.map((t, i) => h`<tr class="${t.id === mine ? "me" : ""}"><td>${i + 1}</td><td><a href="${teamHref(t.id)}">${t.name}</a></td><td class="n">${t.p}</td><td class="n">${t.w}-${t.d}-${t.l}</td>
       <td class="n">${t.gf}</td><td class="n">${f1(t.xgf)}</td><td class="n">${t.ga}</td><td class="n">${f1(t.xga)}</td>
       <td class="n"><b>${t.npxgd > 0 ? "+" : ""}${f2(t.npxgd)}</b></td><td class="n">${f1(t.sh / t.p)}</td><td class="n">${f1(t.sha / t.p)}</td>
       <td class="n hide-s">${t.poss ?? "-"}</td><td class="n hide-s">${f1(t.fc / t.p)}</td></tr>`)}
@@ -88,7 +117,7 @@ function playersTable(el, d, lg) {
     el.querySelector("#pl").innerHTML = html(h`<div class="scroll"><table class="t fx">
       <colgroup><col style="width:34px"><col><col style="width:56px"><col style="width:52px" class="hide-s"><col style="width:56px"><col style="width:46px"><col style="width:60px"><col style="width:46px"><col style="width:56px"><col style="width:82px"><col style="width:64px"></colgroup>
       <tr><th>#</th><th>player</th><th>team</th><th class="hide-s">pos</th><th class="n">min</th><th class="n">G</th><th class="n">npxG</th><th class="n">A</th><th class="n">xA</th><th class="n">${state.sort === "r" || state.sort === "mins" || state.sort === "g" ? "npxG+xA/90" : sorts[state.sort][0].replace(" per 90", "/90")}</th><th class="c">rating</th></tr>
-      ${list.map((p, i) => h`<tr><td>${i + 1}</td><td><a href="#/pro/${lg}/${p.id}">${p.name}</a></td><td class="sub">${d.teams[p.team]?.abbr || ""}</td><td class="hide-s sub">${p.pos}</td>
+      ${list.map((p, i) => h`<tr><td>${i + 1}</td><td><a href="#/pro/${lg}/${p.id}">${p.name}</a></td><td class="sub"><a href="${teamHref(p.team)}">${d.teams[p.team]?.abbr || ""}</a></td><td class="hide-s sub">${p.pos}</td>
         <td class="n">${p.mins}</td><td class="n">${p.g}</td><td class="n">${f2(p.npxg)}</td><td class="n">${p.a}</td><td class="n">${f2(p.xa)}</td>
         <td class="n"><b>${f2(["r", "mins", "g"].includes(state.sort) ? per90(p.npxg + p.xa, p.mins) : fn(p))}</b></td><td class="c">${p.r != null ? rt(p.r) : ""}</td></tr>`)}
     </table></div>`);
@@ -120,7 +149,7 @@ export async function profile(el, lg, pid) {
   const p = d?.players.find((x) => x.id === pid);
   if (!p) { put(el, d ? h`<p class="empty">No ${comp(lg)} minutes for this player yet.</p>` : noData()); return; }
   put(el, h`<p class="crumbs"><a href="#/stats/${lg}/players">${comp(lg)} players</a></p>
-    ${pagehead(p.name, `${d.teams[p.team]?.name || ""}, ${POS[p.pos] || p.pos}, ${comp(lg)}`)}
+    ${pagehead(p.name, h`<a href="${teamHref(p.team)}">${d.teams[p.team]?.name || ""}</a>, ${POS[p.pos] || p.pos}, ${comp(lg)}`)}
     <div class="cols"><div>
       ${box("against his peers", h`${bars(profileRows(p, d.players))}
         <p class="sub">Percentile against ${(POS[GROUP[p.pos]] || "players").toLowerCase()} in ${comp(lg)} with ${minMins(d.players)}+ minutes. 50 is the middle of the pack; for fouls, cards and goals let in a high number means fewer.</p>`)}

@@ -1,9 +1,9 @@
 // A player in our squad: season, rating trend, game log, workload, and a
 // way through to the league-wide profile.
-import { team, store, h, esc, day, rt, comp } from "../core.js?v=8";
-import { put, box, loading, pagehead, revealed, icons } from "../ui.js?v=8";
-import { seasonData, playerSeason } from "../season.js?v=8";
-import { workload } from "../league.js?v=8";
+import { team, store, h, esc, day, rt, rtClass, comp } from "../core.js?v=9";
+import { put, box, loading, pagehead, revealed, icons, actions } from "../ui.js?v=9";
+import { seasonData, playerSeason } from "../season.js?v=9";
+import { workload } from "../league.js?v=9";
 
 export async function player(el, pid) {
   put(el, loading());
@@ -38,7 +38,7 @@ export async function player(el, pid) {
         <dt>avg rating</dt><dd>${st.avg != null ? rt(Math.round(st.avg * 100) / 100) : "-"}</dd>
         <dt>your avg</dt><dd>${fanAvg != null ? fanAvg.toFixed(2) : h`<span class="sub">rate him on a match page</span>`}</dd>
         <dt>player of the match</dt><dd>${st.motm}</dd></dl>`)}
-      ${box("league profile", h`${team().leagues.map((lg) => h`<p><a href="#/pro/${lg}/${pid}">${comp(lg)}: percentiles, xG and xA</a></p>`)}`)}
+      ${team().leagues.length ? box("league profile", h`<p class="sub">Percentiles, xG and xA against everyone in the competition.</p>${actions(team().leagues.map((lg) => [comp(lg), `#/pro/${lg}/${pid}`]), "left")}`) : ""}
       ${box("workload", h`<dl class="kv">
         <dt>last 7 days</dt><dd>${w.m7} min</dd><dt>last 28 days</dt><dd>${w.m28} min</dd>
         <dt>games in 14 days</dt><dd>${w.g14}</dd><dt>ACWR</dt><dd>${w.acwr == null ? "-" : w.acwr.toFixed(2)}</dd>
@@ -73,7 +73,7 @@ function drawSpark(slot, pts) {
       const x = xs(i).toFixed(1), y = ys(p.r).toFixed(1);
       const label = `${day(new Date(p.m.date))}, ${p.m.home.abbr} v ${p.m.away.abbr}: ${p.r}`;
       return `<a href="#/match/${esc(p.m.league)}/${esc(p.m.id)}/ratings"><title>${esc(label)}</title>
-        <circle class="dt" r="4" cx="${x}" cy="${y}"/>
+        <circle class="dt ${rtClass(p.r)}" r="4.5" cx="${x}" cy="${y}"/>
         ${roomy ? `<text class="v" x="${x}" y="${(y - 8).toFixed(1)}">${p.r.toFixed(1)}</text><text class="op" x="${x}" y="${H - 6}">${esc(opponent(p.m))}</text>` : ""}</a>`;
     }).join("");
     slot.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="rating by match, oldest first">
