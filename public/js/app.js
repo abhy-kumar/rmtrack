@@ -1,78 +1,142 @@
-import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz } from "./core.js?v=6";
-import { startWatching, onLive } from "./alerts.js?v=6";
-import * as v from "./views.js?v=6";
-import * as st from "./stats.js?v=6";
+// Router, header and global behaviour.
+import { prefs, savePrefs, applyTheme, hhmm, lastFetchMs, userTz, TEAMS, team } from "./core.js?v=7";
+import { startWatching, onLive } from "./alerts.js?v=7";
+import { fillTicker } from "./newsfeed.js?v=7";
+import { home } from "./pages/home.js?v=7";
+import { match } from "./pages/match.js?v=7";
+import { fixtures } from "./pages/fixtures.js?v=7";
+import { news } from "./pages/news.js?v=7";
+import { squad } from "./pages/squad.js?v=7";
+import { player } from "./pages/player.js?v=7";
+import { stats, profile } from "./pages/stats.js?v=7";
+import { about } from "./pages/about.js?v=7";
+import { settings } from "./pages/settings.js?v=7";
 
 const main = document.getElementById("main");
-const PAGES = { "100": "#/", "200": "#/fixtures", "300": "#/table", "400": "#/news", "500": "#/squad", "600": "#/stats", "700": "#/ratings", "800": "#/settings" };
-let cleanup = null;
-let t0 = 0;
+const logo = document.querySelector(".logo");
 
-async function route(force) {
+// page numbers, teletext style; typing three digits jumps there
+const PAGES = { 100: "", 200: "fixtures", 300: "news", 400: "squad", 500: "stats", 600: "settings", 700: "about" };
+// pages that live under a nav section
+const SECTION = { match: "fixtures", player: "squad", pro: "stats", table: "stats", ratings: "about" };
+// old addresses that still work
+const REDIRECT = {
+  table: (lg) => `#/stats/${lg || team().domestic || "esp.1"}/table`,
+  ratings: () => "#/about",
+};
+
+// how many path parts name the thing on screen; anything after is just a tab
+const TABBED = { match: 3, stats: 2, fixtures: 1 };
+
+let cleanup = null;
+let seq = 0;
+let shown = null;
+
+function parse() {
+  return location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
+}
+
+function render(page, view, a, b, c) {
+  switch (page) {
+    case "match": return match(view, a, b, c);
+    case "fixtures": return fixtures(view, a);
+    case "news": return news(view);
+    case "squad": return squad(view);
+    case "player": return player(view, a);
+    case "stats": return stats(view, a, b);
+    case "pro": return profile(view, a, b);
+    case "about": return about(view);
+    case "settings": return settings(view, onTeamChange);
+    default: return home(view);
+  }
+}
+
+async function route(teamChanged = false) {
   if (typeof cleanup === "function") cleanup();
   cleanup = null;
-  const parts = location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
-  const [page, a, b, c] = parts;
-  const key = "#/" + (page || "");
+  const parts = parse();
+  const [page = "", a, b, c] = parts;
+  if (REDIRECT[page]) { location.replace(REDIRECT[page](a)); return; }
+  const mine = ++seq;
+
+  const section = SECTION[page] ?? page;
+  let number = "100";
   document.querySelectorAll("#nav a").forEach((n) => {
-    const on = n.getAttribute("href") === key || (page === "match" && n.getAttribute("href") === "#/fixtures") || (page === "player" && n.getAttribute("href") === "#/squad") || (page === "pro" && n.getAttribute("href") === "#/stats");
+    const on = n.dataset.section === section;
     n.classList.toggle("on", on);
+    if (on) { n.setAttribute("aria-current", "page"); number = n.dataset.p; } else n.removeAttribute("aria-current");
   });
-  const p = document.querySelector(`#nav a.on`)?.dataset.p || "100";
-  document.querySelector(".logo").dataset.page = "P" + p;
-  if (force === true) startWatching();
-  t0 = performance.now();
+  if (section === "about") number = "700";
+  logo.dataset.page = "P" + number;
+  if (teamChanged) startWatching();
+
+  // A fresh container per visit, so a slow page that finishes after the
+  // reader has moved on writes into a detached node, not over the new page.
+  // Switching tabs on the same match or table keeps the old view and the
+  // scroll position until the new tab is ready.
+  const key = parts.slice(0, TABBED[page] ?? parts.length).join("/");
+  const sameThing = key === shown && main.firstElementChild;
+  const keepY = window.scrollY;
+  let view = main.firstElementChild;
+  if (!sameThing) {
+    view = document.createElement("div");
+    main.replaceChildren(view);
+    window.scrollTo(0, 0);
+  }
+  shown = key;
+
+  const t0 = performance.now();
+  let done = null;
   try {
-    switch (page) {
-      case "match": cleanup = await v.match(main, a, b, c || "live"); break;
-      case "fixtures": cleanup = await v.fixtures(main); break;
-      case "table": cleanup = await v.tables(main, a); break;
-      case "news": cleanup = await v.newsPage(main); break;
-      case "squad": cleanup = await v.squad(main); break;
-      case "player": cleanup = await v.player(main, a); break;
-      case "ratings": cleanup = await v.ratingsPage(main); break;
-      case "stats": cleanup = await st.explorer(main, a, b || "teams"); break;
-      case "pro": cleanup = await st.profile(main, a, b); break;
-      case "settings": cleanup = await v.settings(main, (teamChanged) => { drawTeams(); v.fillTicker(); route(teamChanged); }); break;
-      default: cleanup = await v.home(main);
-    }
+    done = await render(page, view, a, b, c);
   } catch (e) {
     console.error(e);
-    main.innerHTML = '<p class="err">Something broke drawing this page. Try a reload.</p>';
+    view.innerHTML = '<p class="err">Something broke drawing this page. Try a reload.</p>';
   }
+  if (mine !== seq) {
+    if (typeof done === "function") done();
+    return;
+  }
+  cleanup = done;
+  if (sameThing) window.scrollTo(0, keepY);
   document.getElementById("built").textContent = `page drawn in ${Math.round(performance.now() - t0)} ms, last fetch ${lastFetchMs} ms`;
-  const title = document.querySelector(".pagehead")?.textContent?.trim();
+  const title = view.querySelector(".pagehead")?.firstChild?.textContent?.trim();
   document.title = title ? `${title} | rmtrack` : "rmtrack";
 }
 
+function onTeamChange() {
+  drawTeams();
+  fillTicker();
+  if (/^#\/(match|player|pro)/.test(location.hash)) location.hash = "#/";
+  else route(true);
+}
+
 function drawTeams() {
-  const el = document.getElementById("teamsel");
-  const opts = [["men", "men"], ["women", "femenino"], ["castilla", "castilla"]];
-  el.innerHTML = opts.map(([k, l]) => `<a href="#" data-team="${k}" class="${prefs.team === k ? "on" : ""}">${l}</a>`).join("");
+  document.getElementById("teamsel").innerHTML = Object.entries(TEAMS)
+    .map(([k, t]) => `<button type="button" data-team="${k}" class="linklike ${prefs.team === k ? "on" : ""}" ${prefs.team === k ? 'aria-pressed="true"' : 'aria-pressed="false"'}>${t.label}</button>`)
+    .join("");
 }
 
 document.getElementById("teamsel").addEventListener("click", (e) => {
-  const a = e.target.closest("[data-team]");
-  if (!a) return;
-  e.preventDefault();
-  if (prefs.team === a.dataset.team) return;
-  prefs.team = a.dataset.team;
+  const b = e.target.closest("[data-team]");
+  if (!b || prefs.team === b.dataset.team) return;
+  prefs.team = b.dataset.team;
   savePrefs();
-  drawTeams();
-  v.fillTicker();
-  if (/^#\/(match|player)/.test(location.hash)) location.hash = "#/";
-  else route(true);
+  onTeamChange();
 });
 
-// type a three digit page number to jump there
+document.querySelector("[data-skip]")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  main.focus();
+});
+
 let digits = "";
 document.addEventListener("keydown", (e) => {
-  if (/input|textarea|select/i.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (!/^\d$/.test(e.key)) return;
+  if (/input|textarea|select/i.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey || !/^\d$/.test(e.key)) return;
   digits = (digits + e.key).slice(-3);
-  document.querySelector(".logo").dataset.page = "P" + digits.padEnd(3, "-");
+  logo.dataset.page = "P" + digits.padEnd(3, "-");
   if (digits.length === 3) {
-    if (PAGES[digits]) location.hash = PAGES[digits];
+    if (digits in PAGES) location.hash = "#/" + PAGES[digits];
     digits = "";
   }
 });
@@ -80,19 +144,18 @@ document.addEventListener("keydown", (e) => {
 function clock() {
   const now = new Date();
   const s = now.toLocaleTimeString("en-GB", { hour12: false });
-  const mad = hhmm(now, "Europe/Madrid");
-  document.getElementById("clock").textContent = userTz === "Europe/Madrid" ? s : `${s} | Madrid ${mad}`;
+  document.getElementById("clock").textContent = userTz === "Europe/Madrid" ? s : `${s} | Madrid ${hhmm(now, "Europe/Madrid")}`;
 }
 
 applyTheme();
 drawTeams();
 clock();
 setInterval(clock, 1000);
-window.addEventListener("hashchange", () => route(false));
-onLive(() => v.fillTicker());
+window.addEventListener("hashchange", () => route());
+onLive(() => fillTicker());
 route(true);
-v.fillTicker();
-setInterval(() => v.fillTicker(), 5 * 60 * 1000);
+fillTicker();
+setInterval(fillTicker, 5 * 60 * 1000);
 
 const secure = location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname);
 if ("serviceWorker" in navigator && secure) navigator.serviceWorker.register("/sw.js").catch(() => {});

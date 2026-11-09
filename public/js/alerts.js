@@ -1,6 +1,6 @@
 // Background watcher: spots kick-off, goals, red cards, HT and FT for the
 // selected team and shouts about them (notification + beep + flash line).
-import { api, prefs, flash, esc } from "./core.js?v=6";
+import { api, prefs, flash, esc } from "./core.js?v=7";
 
 let timer = null;
 let seen = {};          // match id -> { state, goals, reds, period }
@@ -12,7 +12,7 @@ export const onLive = (fn) => listeners.add(fn);
 
 document.addEventListener("click", () => {
   if (!audio && window.AudioContext) {
-    try { audio = new AudioContext(); } catch (e) {}
+    try { audio = new AudioContext(); } catch {}
   }
 }, { once: true });
 
@@ -40,7 +40,7 @@ async function notify(title, body, tag) {
     const reg = await navigator.serviceWorker?.getRegistration();
     if (reg) return reg.showNotification(title, opts);
     new Notification(title, opts);
-  } catch (e) {}
+  } catch {}
 }
 
 function score(m) {
@@ -81,11 +81,11 @@ async function tick() {
         const m = await api(`/api/match/${f.league}/${f.id}`, { ttl: 10 });
         live.details[m.id] = m;
         diff(m);
-      } catch (e) {}
+      } catch {}
     }
     listeners.forEach((fn) => fn(live));
     schedule(watch.length ? 15000 : 60000);
-  } catch (e) {
+  } catch {
     schedule(60000);
   }
 }

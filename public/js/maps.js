@@ -1,7 +1,7 @@
 // Pitch drawings built from the positions in ESPN's commentary.
 // Positions come as 0-100 on both axes, in the attacking frame of the side
 // that made the play: x=100 is the goal they're shooting at.
-import { h, raw, esc } from "./core.js?v=6";
+import { h, raw, esc } from "./core.js?v=7";
 
 const L = 105, W = 68;          // pitch in metres
 const X = (x) => (x / 100) * L;
@@ -81,9 +81,9 @@ export function shotMap(m) {
     ${svg(marks.join(""))}
     ${legend(["goal", "saved", "blocked", "miss", "post"])}
     <p class="sub">Light markers are ${m.home.name}, dark are ${m.away.name}. Bigger markers are better chances (higher xG). Lines show where shots on target ended up. Hover a marker for who, when and the xG.</p>
-    <table class="t fx" style="max-width:700px"><colgroup><col><col style="width:64px"><col style="width:64px"><col style="width:84px"><col style="width:64px"><col style="width:100px"><col style="width:84px"></colgroup>
+    <div class="scroll"><table class="t fx" style="max-width:700px"><colgroup><col><col style="width:64px"><col style="width:64px"><col style="width:84px"><col style="width:64px"><col style="width:100px"><col style="width:84px"></colgroup>
       <tr><th></th><th class="n">xG</th><th class="n">shots</th><th class="n">on target</th><th class="n">in box</th><th class="n" title="shots worth 0.3 xG or more">big chances</th><th class="n">xG/shot</th></tr>
-      <tr><td>${m.home.name}</td>${sum("home")}</tr><tr><td>${m.away.name}</td>${sum("away")}</tr></table>`;
+      <tr><td>${m.home.name}</td>${sum("home")}</tr><tr><td>${m.away.name}</td>${sum("away")}</tr></table></div>`;
 }
 
 // who was on top, five minutes at a time
@@ -131,9 +131,9 @@ export function territory(m) {
     return h`<tr><td>${name}</td>${pct.map((p, i) => h`<td><div class="third"><i style="width:${p}%"></i><span>${p}%</span></div></td>`)}</tr>`;
   };
   return h`<h3 class="maph">Where they played</h3>
-    <table class="t fx" style="max-width:640px"><colgroup><col><col style="width:22%"><col style="width:22%"><col style="width:22%"></colgroup>
+    <div class="scroll"><table class="t fx" style="max-width:640px"><colgroup><col><col style="width:22%"><col style="width:22%"><col style="width:22%"></colgroup>
     <tr><th></th><th>own third</th><th>middle</th><th>final third</th></tr>
-    ${row("home", m.home.name)}${row("away", m.away.name)}</table>
+    ${row("home", m.home.name)}${row("away", m.away.name)}</table></div>
     <p class="sub">Share of each side's logged actions (shots, free kicks won, corners, offsides) in each third, seen from their own end.</p>`;
 }
 

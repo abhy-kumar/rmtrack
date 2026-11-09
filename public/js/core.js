@@ -1,4 +1,10 @@
-// Shared bits: prefs, fetching, time, small html helpers.
+// Shared bits: team config, prefs, fetching, time, small html helpers.
+
+export const TEAMS = {
+  men: { id: "86", name: "Real Madrid", label: "men", leagues: ["esp.1", "uefa.champions"], domestic: "esp.1" },
+  women: { id: "21128", name: "Real Madrid Femenino", label: "femenino", leagues: ["esp.w.1", "uefa.wchampions"], domestic: "esp.w.1" },
+  castilla: { id: "7000", name: "Real Madrid Castilla", label: "castilla", leagues: [], domestic: null },
+};
 
 const PREFS_KEY = "rm:prefs";
 const DEFAULTS = {
@@ -17,19 +23,21 @@ const DEFAULTS = {
 
 export const prefs = (() => {
   let p = {};
-  try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}"); } catch (e) {}
+  try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}"); } catch {}
   return { ...DEFAULTS, ...p, tiers: { ...DEFAULTS.tiers, ...(p.tiers || {}) } };
 })();
 
+export const team = () => TEAMS[prefs.team] || TEAMS.men;
+
 export function savePrefs() {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {}
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {}
 }
 
 export function store(key, val) {
   try {
     if (val === undefined) return JSON.parse(localStorage.getItem("rm:" + key) || "null");
     localStorage.setItem("rm:" + key, JSON.stringify(val));
-  } catch (e) { return null; }
+  } catch { return null; }
 }
 
 export function applyTheme() {
@@ -69,7 +77,7 @@ export async function staticJson(path) {
   try {
     const r = await fetch(path, { cache: "no-cache" });
     return r.ok ? await r.json() : null;
-  } catch (e) { return null; }
+  } catch { return null; }
 }
 
 // ---------- html ----------

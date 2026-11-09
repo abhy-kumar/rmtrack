@@ -12,19 +12,12 @@
 <link rel="apple-touch-icon" href="/img/icon-192.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" href="/fonts/iosevka-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=6">
-<script>
-  // theme before first paint, so there's no white flash on AMOLED
-  try {
-    var s = JSON.parse(localStorage.getItem("rm:prefs") || "{}");
-    var t = s.theme || "auto";
-    if (t === "auto") t = matchMedia("(prefers-color-scheme: dark)").matches ? "amoled" : "light";
-    document.documentElement.dataset.theme = t;
-  } catch (e) {}
-</script>
-<script type="module" src="/js/app.js?v=6"></script>
+<link rel="stylesheet" href="/css/site.css?v=7">
+<script src="/js/boot.js?v=7"></script>
+<script type="module" src="/js/app.js?v=7"></script>
 </head>
 <body>
+<a class="skip" href="#/" data-skip>skip to content</a>
 <div id="wrap">
   <div id="ticker" aria-hidden="true"><div class="tk"><span>loading the wires...</span></div></div>
   <header id="mast">
@@ -34,24 +27,22 @@
       <div id="teamsel"></div>
     </div>
   </header>
-  <nav id="nav">
-    <a href="#/" data-p="100">home</a>
-    <a href="#/fixtures" data-p="200">fixtures</a>
-    <a href="#/table" data-p="300">tables</a>
-    <a href="#/news" data-p="400">news</a>
-    <a href="#/squad" data-p="500">squad</a>
-    <a href="#/stats" data-p="600">stats</a>
-    <a href="#/ratings" data-p="700">ratings</a>
-    <a href="#/settings" data-p="800">settings</a>
+  <nav id="nav" aria-label="main">
+    <a href="#/" data-p="100" data-section="">home</a>
+    <a href="#/fixtures" data-p="200" data-section="fixtures">fixtures</a>
+    <a href="#/news" data-p="300" data-section="news">news</a>
+    <a href="#/squad" data-p="400" data-section="squad">squad</a>
+    <a href="#/stats" data-p="500" data-section="stats">stats</a>
+    <a href="#/settings" data-p="600" data-section="settings">settings</a>
   </nav>
-  <div id="flash" hidden></div>
-  <main id="main"><p class="loading">loading...</p></main>
+  <div id="flash" role="status" aria-live="polite" hidden></div>
+  <main id="main" tabindex="-1"><p class="loading">loading...</p></main>
   <footer id="foot">
     <p>rmtrack is an unofficial fan page. Not affiliated with Real Madrid C.F.<br>
-    Scores &amp; commentary: ESPN | news: the outlets credited on each line | ratings: our own model, see <a href="#/ratings">how it works</a>.</p>
+    Scores and commentary: ESPN | news: the outlets credited on each line | ratings and xG: our own models, see <a href="#/about">about the numbers</a>.</p>
     <p class="tiny"><span id="built"></span> | best viewed in any browser at any resolution</p>
   </footer>
 </div>
-<noscript><p style="padding:1em">rmtrack needs JavaScript for live scores. Sorry.</p></noscript>
+<noscript><p class="nojs">rmtrack needs JavaScript for live scores. Sorry.</p></noscript>
 </body>
 </html>
