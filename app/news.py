@@ -3,7 +3,7 @@ import asyncio
 import hashlib
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from html import unescape
 from pathlib import Path
@@ -48,8 +48,8 @@ def _iso(dt):
     if dt is None:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).isoformat(timespec="seconds")
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC).isoformat(timespec="seconds")
 
 
 def _item(title, url, when, source, tier, lang=None, journalist=None, kind="article", summary=""):
@@ -176,7 +176,7 @@ async def collect(team_key, extra_handles=(), extra_names=()):
 
     results = await asyncio.gather(*jobs, return_exceptions=True)
     items, seen, failed = [], set(), 0
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for res in results:
         if isinstance(res, Exception):
             failed += 1

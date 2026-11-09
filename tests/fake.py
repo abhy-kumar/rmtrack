@@ -7,7 +7,7 @@ the same match replayed as if it were live at 64', plus a few fixtures.
 """
 import copy
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 SAMPLE = json.loads((Path(__file__).parent / "sample_summary.json").read_text(encoding="utf-8"))
@@ -40,7 +40,7 @@ RM, VAL, CEL, PSV, BAR = ("86", "Real Madrid", "RMA"), ("94", "Valencia", "VAL")
 
 
 def schedule(team_id, fixtures=False):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if fixtures:
         return {"events": [
             _event(LIVE_ID, now - timedelta(minutes=70), "esp.1", RM, BAR, "in", "2", "1"),
@@ -92,7 +92,7 @@ def roster(league, team_id):
 
 
 async def news_collect(team_key, extra_handles=(), extra_names=()):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     items = [
         {"id": "a1", "title": "El Madrid prepara la visita del Celta con dudas en defensa", "title_en": "Madrid prepare for Celta's visit with doubts in defence",
          "url": "https://example.org/1", "published": (now - timedelta(minutes=40)).isoformat(), "source": "COPE", "tier": "A", "lang": "es", "journalist": "Melchor Ruiz", "kind": "article", "summary": ""},
@@ -104,14 +104,15 @@ async def news_collect(team_key, extra_handles=(), extra_names=()):
     return {"items": items, "failed": 0, "built": now.isoformat(timespec="seconds")}
 
 
-def install():
+def install(patch=setattr):
+    """Swap the network calls for canned data. Tests pass monkeypatch.setattr."""
     from app import espn, news
 
     async def a(fn, *args, **kw):
         return fn(*args, **kw)
 
-    espn.schedule = lambda *x, **k: a(schedule, *x, **k)
-    espn.summary = lambda *x: a(summary, *x)
-    espn.standings = lambda *x: a(standings, *x)
-    espn.roster = lambda *x: a(roster, *x)
-    news.collect = news_collect
+    patch(espn, "schedule", lambda *x, **k: a(schedule, *x, **k))
+    patch(espn, "summary", lambda *x: a(summary, *x))
+    patch(espn, "standings", lambda *x: a(standings, *x))
+    patch(espn, "roster", lambda *x: a(roster, *x))
+    patch(news, "collect", news_collect)

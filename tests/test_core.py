@@ -1,8 +1,6 @@
-import asyncio
 import json
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app import espn, main, net
@@ -36,7 +34,7 @@ def test_ratings_shape():
     assert len(rated) == 11
     assert all(3 <= r <= 10 for r in rated)
     assert m["motm"] == "310452"  # Güler
-    assert [p["row"] for p in rm["xi"]][0] == "GK"
+    assert rm["xi"][0]["row"] == "GK"
 
 
 def test_cameo_is_unrated():

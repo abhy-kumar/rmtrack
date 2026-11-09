@@ -37,7 +37,8 @@ def row(r):
 
 
 def main(path, ridge=2.0):
-    rows = list(csv.DictReader(open(path, encoding="utf-8")))
+    with open(path, encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
     feats = [row(r) for r in rows]
     names = list(feats[0])
     X = np.array([[f[n] for n in names] for f in feats])

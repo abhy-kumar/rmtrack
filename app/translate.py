@@ -70,7 +70,7 @@ async def many(texts, target="en"):
         except Exception:
             sem = asyncio.Semaphore(5)
 
-            async def go(t):
+            async def go(t, sem=sem):
                 async with sem:
                     await one(t, target)
             await asyncio.gather(*(go(t) for t in batch))

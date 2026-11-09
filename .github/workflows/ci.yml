@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["public/data/**", "app/xg.json"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: check scripts parse
+        run: for f in public/js/*.js public/js/pages/*.js public/sw.js; do node --check "$f"; done
