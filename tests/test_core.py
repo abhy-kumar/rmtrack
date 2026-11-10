@@ -91,3 +91,29 @@ def test_key_events_carry_player_ids():
     assert {e["p"][0][0] for e in goals} <= ids
     subs = [e for e in m["timeline"] if e["k"] == "sub"]
     assert all(len(e["p"]) == 2 for e in subs)
+
+
+def test_shootout_decides_result():
+    from app.match import outcome
+    assert outcome({"score": 1, "shootout": 4}, {"score": 1, "shootout": 3}) == "W"
+    assert outcome({"score": 1}, {"score": 1}) == "D"
+    assert outcome({"score": 0, "shootout": 5}, {"score": 2, "shootout": None}) == "L"
+
+
+def test_no_clean_sheet_until_full_time():
+    from app import ratings
+    keeper = {"seconds": 70 * 60, "pos": "G", "ev": {}}
+    live, _ = ratings.rate(keeper, 0, 50, finished=False)
+    done, _ = ratings.rate(keeper, 0, 50, finished=True)
+    assert abs((done - live) - ratings.CLEAN["GK"]) <= 0.1
+
+
+def test_compact_counts_involvement():
+    from app import season
+    m = normalize(SAMPLE, "esp.1")
+    rm = "86"
+    c, _ = season.compact(m, rm)
+    assert c["v"] == season.COMPACT_VERSION
+    rows = list(c["players"].values())
+    assert all(len(r) == 8 for r in rows)
+    assert sum(r[7] for r in rows) > 0

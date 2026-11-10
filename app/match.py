@@ -79,6 +79,14 @@ def kit_of(t):
     return [a.lower(), b.lower() if HEX.match(b) else a.lower()] if HEX.match(a) else None
 
 
+def outcome(me, them):
+    """W, D or L. A shootout decides a level cup tie."""
+    a, b = me.get("score") or 0, them.get("score") or 0
+    if a == b and me.get("shootout") is not None and them.get("shootout") is not None:
+        a, b = me["shootout"], them["shootout"]
+    return "W" if a > b else "L" if a < b else "D"
+
+
 def _team_bits(c):
     t = c.get("team") or {}
     score = c.get("score")

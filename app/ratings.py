@@ -90,7 +90,8 @@ def rate(player, result=0, possession=50.0, finished=False):
             parts.append(("pen_saves", PEN_SAVE * ev["pen_saves"]))
     if ev.get("conceded_on"):
         parts.append(("conceded", CONCEDED[g] * ev["conceded_on"]))
-    if not ev.get("conceded_on") and secs >= 60 * 60 and CLEAN[g]:
+    # a clean sheet isn't one until the whistle, so live ratings leave it out
+    if finished and not ev.get("conceded_on") and secs >= 60 * 60 and CLEAN[g]:
         parts.append(("clean", CLEAN[g]))
     if result:
         parts.append(("result", RESULT[g] * result * share))

@@ -2,7 +2,7 @@
 import asyncio
 
 from . import espn
-from .match import fixture, normalize
+from .match import fixture, normalize, outcome
 from .net import cached, peek, put
 
 FRIENDLY = ("club.friendly",)
@@ -47,24 +47,38 @@ async def schedule(team_key):
 def _res(m, team_id):
     me = m["home"] if m["home"]["id"] == team_id else m["away"]
     them = m["away"] if me is m["home"] else m["home"]
-    a, b = me.get("score") or 0, them.get("score") or 0
-    return "W" if a > b else "L" if a < b else "D"
+    return outcome(me, them)
+
+
+# bump when the per-player row changes; the archive job rebuilds older rows
+COMPACT_VERSION = 2
 
 
 def compact(m, team_id):
-    """What the archive index keeps per match."""
+    """What the archive index keeps per match.
+
+    Per player: [rating, minutes, goals, assists, yellows, reds, started,
+    involvements], where involvements counts the commentary lines he's in
+    (shots, fouls either way, chances made, offsides). It's the nearest thing
+    to a work-rate number ESPN gives us.
+    """
     me = "home" if m["home"]["id"] == team_id else "away"
+    busy = {}
+    for a in m.get("acts") or []:
+        if a[1] == me and a[5]:
+            busy[a[5]] = busy.get(a[5], 0) + 1
     players, names = {}, {}
     for p in m[me]["xi"] + m[me]["bench"]:
         if not p["mins"]:
             continue
-        players[p["id"]] = [p["r"], p["mins"], p["g"], p["a"], p["y"], p["rc"], 1 if p in m[me]["xi"] else 0]
+        players[p["id"]] = [p["r"], p["mins"], p["g"], p["a"], p["y"], p["rc"], 1 if p in m[me]["xi"] else 0,
+                            busy.get(p["id"], 0)]
         names[p["id"]] = [p["name"], p["pos"] if p in m[me]["xi"] else ""]
     side = lambda s: {"abbr": m[s]["abbr"], "name": m[s]["name"], "score": m[s]["score"]}
     return {
         "id": m["id"], "league": m["league"], "comp": m["comp"], "date": m["date"],
         "home": side("home"), "away": side("away"), "res": _res(m, team_id),
-        "motm": m["motm"], "players": players,
+        "motm": m["motm"], "players": players, "v": COMPACT_VERSION,
     }, names
 
 

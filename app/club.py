@@ -1,6 +1,6 @@
 """League tables, squads and recent form, shaped for the front end."""
 from . import espn
-from .match import kit_of
+from .match import kit_of, outcome
 from .net import cached
 from .season import FRIENDLY
 
@@ -100,10 +100,9 @@ def form(done, team_id, n=5):
         if f["league"] in FRIENDLY:
             continue
         me, them = (f["home"], f["away"]) if f["home"]["id"] == team_id else (f["away"], f["home"])
-        a, b = me.get("score") or 0, them.get("score") or 0
         out.append({
-            "id": f["id"], "league": f["league"], "res": "W" if a > b else "L" if a < b else "D",
-            "opp": them["abbr"], "score": f"{a}-{b}",
+            "id": f["id"], "league": f["league"], "res": outcome(me, them),
+            "opp": them["abbr"], "score": f"{me.get('score') or 0}-{them.get('score') or 0}",
         })
         if len(out) == n:
             break

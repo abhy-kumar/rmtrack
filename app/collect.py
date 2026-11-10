@@ -39,13 +39,28 @@ def _save(path, data):
     tmp.replace(path)
 
 
+def _upgrade(key, idx, team_id):
+    """Rebuild index rows made by an older compact() from the saved matches."""
+    fixed = 0
+    for i, row in enumerate(idx["matches"]):
+        if row.get("v") == season.COMPACT_VERSION:
+            continue
+        saved = _load(ROOT / key / "m" / f"{row['id']}.json", None)
+        if saved:
+            idx["matches"][i], _ = season.compact(saved, team_id)
+            fixed += 1
+    if fixed:
+        log.info("%s: rebuilt %d archive rows", key, fixed)
+    return fixed
+
+
 async def team_archive(key):
     team = espn.team(key)
     idx_path = ROOT / key / "index.json"
     idx = _load(idx_path, {"team": key, "matches": [], "names": {}})
+    new = _upgrade(key, idx, team["id"])
     have = {m["id"] for m in idx["matches"]}
     rows = await season.schedule(key)
-    new = 0
     for f in rows:
         if f["status"]["state"] != "post" or f["id"] in have or f["league"] in season.FRIENDLY:
             continue
