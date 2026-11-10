@@ -586,6 +586,7 @@ td .form .res { width: 16px; height: 16px; line-height: 16px; font-size: 10px; }
 .teamhead { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s3); padding-bottom: var(--s2); border-bottom: 1px solid var(--sh1); box-shadow: 0 1px var(--hl1); }
 .teamhead .pagehead { border: 0; box-shadow: none; margin: 0; padding: 0; }
 .mlist .vs { display: inline-flex; align-items: center; gap: 6px; }
+.mlist .ha { color: var(--mute); font-weight: 400; min-width: 1.4em; }
 
 /* ================================================================ fixtures list */
 
@@ -835,3 +836,9 @@ table.pct td { vertical-align: middle; }
 }
 details.why { display: inline-block; margin-right: var(--s3); vertical-align: top; }
 details.why[open] { display: block; }
+
+/* load meter */
+.meter { flex-basis: 100%; display: block; height: 6px; margin: 3px 0 2px; background: var(--soft); box-shadow: var(--thin-sunken); }
+.meter i { display: block; height: 100%; background: var(--r7); }
+.meter.watch i { background: var(--r6); }
+.meter.high i { background: var(--loss); }

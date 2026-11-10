@@ -1,13 +1,13 @@
 // A player in our squad: season, rating trend, game log, workload, and a
 // way through to the league-wide profile.
-import { team, store, h, esc, day, rt, rtClass, comp } from "../core.js?v=11";
-import { put, box, loading, pagehead, revealed, icons, actions } from "../ui.js?v=11";
-import { seasonData, playerSeason } from "../season.js?v=11";
-import { workload } from "../league.js?v=11";
+import { api, prefs, team, store, h, esc, day, rt, rtClass, comp } from "../core.js?v=12";
+import { put, box, loading, pagehead, revealed, icons, actions } from "../ui.js?v=12";
+import { seasonData, playerSeason } from "../season.js?v=12";
+import { playerWorkload, WORKLOAD_NOTE } from "../league.js?v=12";
 
 export async function player(el, pid) {
   put(el, loading());
-  const s = await seasonData();
+  const [s, fx] = await Promise.all([seasonData(), api(`/api/fixtures?team=${prefs.team}`, { ttl: 300 }).catch(() => null)]);
   const st = playerSeason(s, pid);
   const [name, pos] = s.names[pid] || ["Unknown player", ""];
   if (!st.apps) {
@@ -17,7 +17,7 @@ export async function player(el, pid) {
   const fanVals = st.games.map((x) => (store("fan:" + x.m.id) || {})[pid]).filter(Boolean).map(Number);
   const fanAvg = fanVals.length ? fanVals.reduce((a, b) => a + b, 0) / fanVals.length : null;
   const rated = st.games.filter((x) => x.r != null);
-  const w = workload(s, pid);
+  const w = playerWorkload(s, pid, fx?.rows.find((f) => f.status.state === "pre")?.date || null);
 
   put(el, h`<p class="crumbs"><a href="#/squad">squad</a></p>${pagehead(name, pos)}
     <div class="cols"><div>
@@ -40,11 +40,14 @@ export async function player(el, pid) {
         <dt>player of the match</dt><dd>${st.motm}</dd></dl>`)}
       ${team().leagues.length ? box("league profile", h`<p class="sub">Percentiles, xG and xA against everyone in the competition.</p>${actions(team().leagues.map((lg) => [comp(lg), `#/pro/${lg}/${pid}`]), "left")}`) : ""}
       ${box("workload", h`<dl class="kv">
-        <dt>last 7 days</dt><dd>${w.m7} min</dd><dt>last 28 days</dt><dd>${w.m28} min</dd>
-        <dt>games in 14 days</dt><dd>${w.g14}</dd><dt>ACWR</dt><dd>${w.acwr == null ? "-" : w.acwr.toFixed(2)}</dd>
-        <dt>days since last game</dt><dd>${w.rest ?? "-"}</dd></dl>
-        ${w.flags.length ? h`<p class="warn">${w.flags.join(", ")}</p>` : ""}
-        <p class="sub"><a href="#/about">What these mean.</a></p>`)}
+        <dt>load score</dt><dd>${w.score} of 100, ${w.band}</dd>
+        <dt>last 7 days</dt><dd>${w.m7} min</dd><dt>last 28 days</dt><dd>${w.m28} min, ${w.starts28} starts</dd>
+        <dt>quick turnarounds</dt><dd>${w.turnarounds} in 3 weeks</dd>
+        <dt>days since last game</dt><dd>${w.rest == null ? "-" : Math.floor(w.rest)}</dd>
+        <dt>next game</dt><dd>${w.nextIn == null ? "-" : `in ${Math.max(0, Math.round(w.nextIn))} days`}</dd>
+        <dt>role</dt><dd>${w.role || "-"}</dd></dl>
+        ${w.band !== "fine" ? h`<p class="warn">${w.why.join(", ")}</p>` : ""}
+        <p class="sub" title="${WORKLOAD_NOTE}"><a href="#/about">How the load score works.</a></p>`)}
     </aside></div>`);
   const slot = el.querySelector("[data-spark]");
   if (slot) drawSpark(slot, rated);

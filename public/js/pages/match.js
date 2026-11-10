@@ -1,11 +1,11 @@
 // Match centre. Four tabs, and which one opens depends on the state of the
 // game: preview before kick-off, live commentary during, ratings after.
-import { api, prefs, savePrefs, store, h, html, when, hhmm, dayYear, rt } from "../core.js?v=11";
-import { beep } from "../alerts.js?v=11";
-import { put, fail, loading, board, tabs, revealed, veil, isMine, icons, resultBadge, personLink, teamLink, feedLine } from "../ui.js?v=11";
-import { shotMap, momentum, territory, playerMap, xgRace } from "../maps.js?v=11";
-import { kit, numberedKit } from "../kits.js?v=11";
-import { scouting } from "../league.js?v=11";
+import { api, prefs, savePrefs, store, h, html, when, hhmm, dayYear, rt } from "../core.js?v=12";
+import { beep } from "../alerts.js?v=12";
+import { put, fail, loading, board, tabs, revealed, veil, isMine, icons, resultBadge, personLink, teamLink, feedLine } from "../ui.js?v=12";
+import { shotMap, momentum, territory, playerMap, xgRace } from "../maps.js?v=12";
+import { kit, numberedKit } from "../kits.js?v=12";
+import { scouting } from "../league.js?v=12";
 
 const LEGACY = { lineups: "ratings", maps: "stats", before: "preview" };
 

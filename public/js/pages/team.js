@@ -1,9 +1,9 @@
 // Any club in our competitions: record, xG, results and its players, built
 // from the league files the collector writes.
-import { api, team, h, day, rt, comp } from "../core.js?v=11";
-import { put, box, loading, pagehead, tabs, resultBadge, actions, revealed } from "../ui.js?v=11";
-import { leagueData, f1, f2, per90, POS } from "../league.js?v=11";
-import { kit } from "../kits.js?v=11";
+import { api, team, h, day, rt, comp } from "../core.js?v=12";
+import { put, box, loading, pagehead, tabs, resultBadge, actions, revealed } from "../ui.js?v=12";
+import { leagueData, f1, f2, per90, POS } from "../league.js?v=12";
+import { kit } from "../kits.js?v=12";
 
 export async function teamPage(el, id, wanted) {
   put(el, loading());

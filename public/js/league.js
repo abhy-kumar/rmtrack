@@ -1,7 +1,7 @@
 // League-wide numbers: data loading, per-90 metrics and percentiles,
 // opponent scouting and workload. Reads the static files the collector
 // writes under /data/lg/.
-import { staticJson, team, h, day, comp } from "./core.js?v=11";
+import { staticJson, team, h, day, comp } from "./core.js?v=12";
 
 export const POS = { GK: "Goalkeepers", DEF: "Defenders", DM: "Def. midfield", MID: "Midfielders", AM: "Att. midfield", ATT: "Forwards" };
 export const GROUP = { GK: "GK", DEF: "DEF", DM: "MID", MID: "MID", AM: "ATT", ATT: "ATT" }; // peer groups for percentiles
@@ -76,10 +76,12 @@ export async function scouting(m) {
   const mineSide = m.home.id === myId ? "home" : m.away.id === myId ? "away" : null;
   if (!mineSide) return "";
   const opp = mineSide === "home" ? m.away : m.home;
-  const d = await leagueData(m.league);
+  // cup games have no league files of their own, so scout from the domestic league
+  const lg = team().leagues.includes(m.league) ? m.league : team().domestic;
+  const d = lg ? await leagueData(lg) : null;
   if (!d) return h`<h3 class="maph">Scouting ${opp.name}</h3>${noData()}`;
   const us = d.teams[myId], them = d.teams[opp.id];
-  if (!them) return h`<h3 class="maph">Scouting ${opp.name}</h3><p class="empty">${opp.name} have no ${comp(m.league)} games in the data yet.</p>`;
+  if (!them) return h`<h3 class="maph">Scouting ${opp.name}</h3><p class="empty">${opp.name} have no ${comp(lg)} games in the data yet.</p>`;
   const pm = (t, f) => (t ? t[f] / (t.p || 1) : null);
   const rows = [
     ["goals for", "gf"], ["xG for", "xgf"], ["goals against", "ga"], ["xG against", "xga"],
@@ -90,7 +92,7 @@ export async function scouting(m) {
   const threat = [...theirs].filter((p) => p.pos !== "GK").sort((a, b) => per90(b.npxg + b.xa, b.mins) - per90(a.npxg + a.xa, a.mins)).slice(0, 4);
   const rough = [...theirs].sort((a, b) => per90(b.fc + 3 * b.yc, b.mins) - per90(a.fc + 3 * a.yc, a.mins)).slice(0, 3);
   const last = them.log.slice(-5);
-  return h`<h3 class="maph">Scouting ${opp.name} <span class="sub">${comp(m.league)}, per match</span></h3>
+  return h`<h3 class="maph">Scouting ${opp.name} <span class="sub">${comp(lg)}, per match</span></h3>
     <table class="t fx" style="max-width:640px"><colgroup><col><col style="width:110px"><col style="width:110px"></colgroup>
       <tr><th></th><th class="n">${us?.abbr || "us"}</th><th class="n">${them.abbr}</th></tr>
       ${rows.map(([label, f]) => h`<tr><td>${label}</td><td class="n">${f1(pm(us, f))}</td><td class="n">${f1(pm(them, f))}</td></tr>`)}
@@ -103,57 +105,160 @@ export async function scouting(m) {
     <h3 class="maph">Who to watch</h3>
     ${threat.length ? h`<table class="t fx" style="max-width:640px"><colgroup><col><col style="width:60px"><col style="width:50px"><col style="width:60px"><col style="width:60px"><col style="width:100px"></colgroup>
       <tr><th>player</th><th class="n">min</th><th class="n">G</th><th class="n">npxG</th><th class="n">xA</th><th class="n">npxG+xA/90</th></tr>
-      ${threat.map((p) => h`<tr><td><a href="#/pro/${m.league}/${p.id}">${p.name}</a> <span class="sub">${p.pos}</span></td><td class="n">${p.mins}</td><td class="n">${p.g}</td><td class="n">${f2(p.npxg)}</td><td class="n">${f2(p.xa)}</td><td class="n"><b>${f2(per90(p.npxg + p.xa, p.mins))}</b></td></tr>`)}
+      ${threat.map((p) => h`<tr><td><a href="#/pro/${lg}/${p.id}">${p.name}</a> <span class="sub">${p.pos}</span></td><td class="n">${p.mins}</td><td class="n">${p.g}</td><td class="n">${f2(p.npxg)}</td><td class="n">${f2(p.xa)}</td><td class="n"><b>${f2(per90(p.npxg + p.xa, p.mins))}</b></td></tr>`)}
     </table>` : h`<p class="empty">Not enough minutes logged yet.</p>`}
     ${rough.length ? h`<p class="sub">Most likely to foul or get booked: ${rough.map((p, i) => h`${i ? ", " : ""}${p.name} (${f2(per90(p.fc, p.mins))} fouls, ${p.yc} yellows)`)}.</p>` : ""}`;
 }
 
 // ---------------------------------------------------------------- workload
 
-// Minutes-based load from every competitive game this season (season data
-// from views.seasonData). A guide, not a medical readout: no training data.
-export function workload(season, pid, now = Date.now()) {
-  const games = season.matches.filter((m) => m.players[pid]).map((m) => ({ t: new Date(m.date).getTime(), mins: m.players[pid][1] }))
-    .filter((g) => g.t <= now).sort((a, b) => a.t - b.t);
-  const within = (days) => games.filter((g) => now - g.t <= days * 86400e3);
-  const m7 = within(7).reduce((s, g) => s + g.mins, 0);
-  const m28 = within(28).reduce((s, g) => s + g.mins, 0);
-  // "uncoupled" ratio: this week against the three weeks before it, so a
-  // big week doesn't water down its own baseline
-  const chronic = (m28 - m7) / 3;
-  const acwr = chronic >= 45 ? m7 / chronic : null;
-  const g14 = within(14).length;
+// How hard a position runs, relative to a forward. Midfielders and full-backs
+// cover the most ground in the match-tracking studies, centre-backs less,
+// goalkeepers a fraction. It turns minutes into a rough load.
+const ROLE = [
+  [/^G/, "goalkeeper", 0.3],
+  [/^(CD|CB|SW)/, "centre-back", 0.9],
+  [/^(LB|RB|LWB|RWB|WB)/, "full-back", 1.05],
+  [/^(DM|CM|AM)/, "midfield", 1.1],
+  [/^(LM|RM|LW|RW)/, "wide", 1.05],
+  [/^(F|CF|ST|S)/, "forward", 0.95],
+];
+const ROLE_BY_GROUP = { G: ROLE[0], D: ["", "defender", 0.95], M: ["", "midfield", 1.1], F: ["", "forward", 0.95] };
+
+function roleOf(espnPos, squadPos) {
+  const r = ROLE.find(([re]) => re.test(espnPos || "")) || ROLE_BY_GROUP[(squadPos || "")[0]] || ["", "", 1];
+  return { role: r[1], factor: r[2] };
+}
+
+const DAY = 86400e3;
+const clamp = (v) => Math.max(0, Math.min(1, v));
+
+// Squad-wide involvements per 90 for each role, so one player can be compared
+// with his own kind. Only rows that carry the count (archive version 2) count.
+function involvementNorms(season, roleById) {
+  const per = {};
+  for (const m of season.matches) {
+    for (const [pid, row] of Object.entries(m.players)) {
+      if (row.length < 8 || row[1] < 30) continue;
+      const r = roleById(pid);
+      (per[r] ||= { acts: 0, mins: 0 }).acts += row[7];
+      per[r].mins += row[1];
+    }
+  }
+  return Object.fromEntries(Object.entries(per).map(([r, v]) => [r, v.mins ? (v.acts / v.mins) * 90 : null]));
+}
+
+/*
+  Match load for one player, all competitions, from match data only.
+
+  load per game = minutes x role factor x involvement factor
+  The score out of 100 adds up four things a fitness coach would look at:
+    volume     45  load over the last 28 days, on a curve that flattens out
+                   (seven full games for a midfielder gets about 40)
+    turnaround 25  games of 45+ minutes with three days or less since his last
+    next game  20  another game within three days of a long shift
+    spike      15  last week well above the three weeks before (ratio over 1.3),
+                   only when that week was real minutes
+  Turnarounds and the next game are scaled down for roles that run less.
+*/
+export function workload(season, pid, { now = Date.now(), next = null, squadPos = "", norms = null } = {}) {
+  const pos = season.names?.[pid]?.[1] || "";
+  const { role, factor } = roleOf(pos, squadPos);
+  const games = season.matches.filter((m) => m.players[pid]).map((m) => {
+    const row = m.players[pid];
+    return { t: new Date(m.date).getTime(), mins: row[1], st: row[6], acts: row.length >= 8 ? row[7] : null };
+  }).filter((g) => g.t <= now).sort((a, b) => a.t - b.t);
+
+  // involvement: his actions per 90 against the squad's for his role, kept to +-12%
+  let inv = 1;
+  const counted = games.filter((g) => g.acts != null && g.mins >= 30);
+  const minsC = counted.reduce((t, g) => t + g.mins, 0);
+  const norm = norms?.[role];
+  if (norm && minsC >= 270) inv = 0.88 + 0.24 * clamp(((counted.reduce((t, g) => t + g.acts, 0) / minsC) * 90 / norm - 0.75) / 0.6);
+
+  const loadOf = (g) => g.mins * factor * inv;
+  const since = (days) => games.filter((g) => now - g.t <= days * DAY);
+  const g28 = since(28), g7 = since(7);
+  const L28 = g28.reduce((t, g) => t + loadOf(g), 0);
+  const L7 = g7.reduce((t, g) => t + loadOf(g), 0);
+  const m28 = g28.reduce((t, g) => t + g.mins, 0);
+  const m7 = g7.reduce((t, g) => t + g.mins, 0);
+  const starts28 = g28.filter((g) => g.st).length;
+
+  // the team's games in the same window, for "share of the minutes going"
+  const teamGames28 = season.matches.filter((m) => { const t = new Date(m.date).getTime(); return t <= now && now - t <= 28 * DAY; }).length;
+  const share = teamGames28 ? m28 / (teamGames28 * 90) : 0;
+
+  // quick turnarounds: a real shift (45+) within 3.5 days of his previous game
+  let turnarounds = 0;
+  for (let i = 1; i < games.length; i++) {
+    const g = games[i];
+    if (now - g.t <= 21 * DAY && g.mins >= 45 && g.t - games[i - 1].t <= 3.5 * DAY) turnarounds++;
+  }
+
+  const chronic = (L28 - L7) / 3;
+  const ratio = chronic >= 60 ? L7 / chronic : null;
   const last = games[games.length - 1];
-  const rest = last ? Math.floor((now - last.t) / 86400e3) : null;
-  const flags = [];
-  if (acwr != null && acwr >= 1.5) flags.push("load spike");
-  if (acwr == null && m7 >= 150) flags.push("big week after little football");
-  if (g14 >= 4) flags.push("congested");
-  if (acwr != null && acwr <= 0.5) flags.push("short of minutes");
-  if (rest != null && rest <= 2 && m7 >= 150) flags.push("little rest");
-  return { m7, m28, acwr, g14, rest, flags, games: games.length };
+  const rest = last ? (now - last.t) / DAY : null;
+  const nextIn = next ? (new Date(next).getTime() - now) / DAY : null;
+
+  // recovery matters less the less a role runs, so a keeper's quick turnarounds count for little
+  const legs = Math.min(1, factor / 0.95);
+  const parts = {
+    volume: 45 * (1 - Math.exp(-L28 / 450)),
+    turnaround: 25 * clamp(turnarounds / 3) * legs,
+    next: nextIn != null && nextIn >= 0 && nextIn <= 3.2 && last && rest <= 4 && last.mins >= 60 ? 20 * (last.mins >= 85 ? 1 : 0.6) * legs : 0,
+    spike: ratio != null && m7 >= 150 ? 15 * clamp((ratio - 1.3) / 0.5) : 0,
+  };
+  const score = Math.min(100, Math.round(Object.values(parts).reduce((a, b) => a + b, 0)));
+  const band = score >= 65 ? "high" : score >= 45 ? "watch" : "fine";
+
+  const why = [];
+  if (parts.volume >= 28) why.push(`${starts28} starts, ${m28} min in 4 weeks (${Math.round(share * 100)}% of what was going)`);
+  if (turnarounds) why.push(`${turnarounds} ${turnarounds === 1 ? "game" : "games"} on 3 days' rest or less`);
+  if (parts.next) why.push(`plays again in ${Math.max(1, Math.round(nextIn))} ${Math.round(nextIn) === 1 ? "day" : "days"} after ${last.mins} min`);
+  if (parts.spike) why.push("far more this week than the three before");
+  if (inv >= 1.06 && parts.volume >= 28) why.push("very involved for his role");
+  if (!why.length && m28) why.push(`${m28} min in 4 weeks`);
+
+  return { score, band, parts, why, role, factor, inv, m7, m28, L28: Math.round(L28), starts28, share, turnarounds,
+    ratio, rest, nextIn, games: games.length };
 }
 
-export const WORKLOAD_NOTE = "ACWR is minutes in the last 7 days against the weekly average of the 3 weeks before. Around 0.8 to 1.3 is the comfortable zone in the research; above 1.5 is a jump that has been linked to more soft-tissue injuries, and a big week after a long gap counts as one too. It only sees match minutes, not training, so treat it as a nudge.";
+export const WORKLOAD_NOTE = "Load is minutes weighted by how much the role runs (midfielders and full-backs most, keepers least) and by how involved the player is compared with others in his role. The score out of 100 adds four things: volume over the last four weeks, games played on three days' rest or less, a long shift with the next game coming within three days, and a jump in the last week against the three before. Over 65 is high, 45 to 65 is worth watching. It counts competitive matches for the club only, so training, friendlies and international games are invisible to it.";
 
-export function workloadRows(season, players) {
-  return players.map((p) => ({ p, w: workload(season, p.id) })).filter((r) => r.w.m28 > 0)
-    .sort((a, b) => b.w.flags.length - a.w.flags.length || (b.w.acwr ?? 0) - (a.w.acwr ?? 0));
+export function workloadRows(season, players, next) {
+  const squadPos = Object.fromEntries(players.map((p) => [p.id, p.pos]));
+  const roleById = (pid) => roleOf(season.names?.[pid]?.[1], squadPos[pid]).role;
+  const norms = involvementNorms(season, roleById);
+  return players.map((p) => ({ p, w: workload(season, p.id, { next, squadPos: p.pos, norms }) }))
+    .filter((r) => r.w.m28 > 0)
+    .sort((a, b) => b.w.score - a.w.score);
 }
 
-// Short form for a sidebar: name, ACWR and the reason it was flagged.
+const meter = (w) => h`<span class="meter ${w.band}" title="${w.score} out of 100"><i style="width:${w.score}%"></i></span>`;
+
+// Short form for a sidebar: name, score and why.
 export function workloadList(rows) {
   return h`<ul class="wl">${rows.map(({ p, w }) => h`<li><a href="#/player/${p.id}">${p.name}</a>
-    <span class="n">${w.acwr == null ? "" : "ACWR " + w.acwr.toFixed(2)}</span>
-    <div class="sub">${w.flags.join(", ")}</div></li>`)}</ul>`;
+    <span class="n"><b>${w.score}</b> <span class="sub">${w.band}</span></span>
+    ${meter(w)}
+    <div class="sub">${w.why.slice(0, 2).join(", ")}</div></li>`)}</ul>`;
 }
 
 export function workloadTable(rows) {
   if (!rows.length) return h`<p class="empty">No minutes in the last four weeks.</p>`;
   return h`<div class="scroll"><table class="t fx">
-    <colgroup><col><col class="w70"><col class="w70"><col class="w90"><col class="w70"><col class="w70"><col class="w200 hide-s"></colgroup>
-    <tr><th>player</th><th class="n">7 days</th><th class="n">28 days</th><th class="n">games/14d</th><th class="n">ACWR</th><th class="n">rest</th><th class="hide-s">note</th></tr>
-    ${rows.map(({ p, w }) => h`<tr class="${w.flags.length ? "me" : ""}"><td><a href="#/player/${p.id}">${p.name}</a></td><td class="n">${w.m7}</td><td class="n">${w.m28}</td><td class="n">${w.g14}</td>
-      <td class="n">${w.acwr == null ? "-" : w.acwr.toFixed(2)}</td><td class="n">${w.rest == null ? "-" : w.rest + "d"}</td><td class="hide-s sub">${w.flags.join(", ")}</td></tr>`)}
+    <colgroup><col><col class="w90 hide-s"><col class="w70"><col class="w70"><col class="w90"><col class="w70"><col class="w90"></colgroup>
+    <tr><th>player</th><th class="hide-s">role</th><th class="n">min 28d</th><th class="n">starts</th><th class="n" title="games on 3 days' rest or less, last 3 weeks">quick turns</th><th class="n">rest</th><th class="n">load</th></tr>
+    ${rows.map(({ p, w }) => h`<tr class="${w.band === "high" ? "me" : ""}"><td><a href="#/player/${p.id}">${p.name}</a></td>
+      <td class="hide-s sub">${w.role}</td><td class="n">${w.m28}</td><td class="n">${w.starts28}</td><td class="n">${w.turnarounds}</td>
+      <td class="n">${w.rest == null ? "-" : Math.floor(w.rest) + "d"}</td><td class="n"><b>${w.score}</b> <span class="sub">${w.band}</span></td></tr>`)}
   </table></div>`;
+}
+
+// one player, for his own page
+export function playerWorkload(season, pid, next) {
+  const norms = involvementNorms(season, (id) => roleOf(season.names?.[id]?.[1], "").role);
+  return workload(season, pid, { next, norms });
 }

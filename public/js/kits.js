@@ -1,7 +1,7 @@
 // Little pixel shirts in each club's colours, shaded with ordered dithering
 // the way 256-colour screens used to fake gradients. Drawn as crisp SVG
 // rects, so they stay sharp at any size and cost nothing to load.
-import { api, raw, team, prefs } from "./core.js?v=11";
+import { api, raw, team, prefs, TEAMS } from "./core.js?v=12";
 
 let colours = {};
 
@@ -55,9 +55,14 @@ function shadeOf(c) {
 
 const FALLBACK = { home: ["d4d4d4", "8a8a8a"], away: ["5a5a5a", "b0b0b0"] };
 
+// ESPN's colours for our own sides aren't always the white they play in, so
+// those are fixed here
+const OURS = new Set(Object.values(TEAMS).map((t) => t.id));
+const OUR_KIT = ["ffffff", "141414"];
+
 export function kitColours(side, which = "home") {
-  const k = side?.kit || colours[side?.id] || FALLBACK[which] || FALLBACK.home;
-  return k;
+  if (OURS.has(side?.id)) return OUR_KIT;
+  return side?.kit || colours[side?.id] || FALLBACK[which] || FALLBACK.home;
 }
 
 // readable number colour on top of the shirt

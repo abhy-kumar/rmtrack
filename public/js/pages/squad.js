@@ -1,8 +1,8 @@
 // 400 SQUAD: who's available, who's carrying a load, then the squad itself.
-import { api, prefs, team, h, day, rt } from "../core.js?v=11";
-import { put, box, fail, loading, pagehead } from "../ui.js?v=11";
-import { seasonData, playerSeason } from "../season.js?v=11";
-import { workloadRows, workloadList, workloadTable, WORKLOAD_NOTE } from "../league.js?v=11";
+import { api, prefs, team, h, day, rt } from "../core.js?v=12";
+import { put, box, fail, loading, pagehead } from "../ui.js?v=12";
+import { seasonData, playerSeason } from "../season.js?v=12";
+import { workloadRows, workloadList, workloadTable, WORKLOAD_NOTE } from "../league.js?v=12";
 
 const POS_ORDER = { G: 0, D: 1, M: 2, F: 3 };
 const POS_NAME = ["Goalkeepers", "Defenders", "Midfielders", "Forwards"];
@@ -10,12 +10,16 @@ const POS_NAME = ["Goalkeepers", "Defenders", "Midfielders", "Forwards"];
 export async function squad(el) {
   put(el, loading("loading the squad and this season's numbers"));
   let sq, s;
-  try { [sq, s] = await Promise.all([api(`/api/squad?team=${prefs.team}`, { ttl: 600 }), seasonData()]); }
-  catch { put(el, fail("the squad")); return; }
+  let fx;
+  try {
+    [sq, s, fx] = await Promise.all([api(`/api/squad?team=${prefs.team}`, { ttl: 600 }), seasonData(),
+      api(`/api/fixtures?team=${prefs.team}`, { ttl: 300 }).catch(() => null)]);
+  } catch { put(el, fail("the squad")); return; }
 
+  const next = fx?.rows.find((f) => f.status.state === "pre")?.date || null;
   const notes = availability(sq.players, s);
-  const load = workloadRows(s, sq.players);
-  const flagged = load.filter((r) => r.w.flags.length);
+  const load = workloadRows(s, sq.players, next);
+  const flagged = load.filter((r) => r.w.band !== "fine").slice(0, 8);
   const groups = [[], [], [], []];
   for (const p of sq.players) groups[POS_ORDER[p.pos?.[0]] ?? 2].push({ p, st: playerSeason(s, p.id) });
 
@@ -28,7 +32,7 @@ export async function squad(el) {
       <aside>
         ${box("availability", notes.length ? notes : h`<p class="sub">No injuries, bans or suspension risks on record.</p>`)}
         ${box("workload watch", h`
-          ${flagged.length ? workloadList(flagged) : h`<p class="sub">Nobody's load stands out right now.</p>`}
+          ${flagged.length ? workloadList(flagged) : h`<p class="sub">Nobody's load stands out right now. Busiest: ${load.slice(0, 3).map((r) => r.p.name).join(", ")}.</p>`}
           ${load.length ? h`<p class="sub"><a href="#/squad" data-open="load">full load table</a></p>` : ""}`, "all competitions")}
       </aside>
     </div>`);
@@ -45,18 +49,33 @@ document.addEventListener("click", (e) => {
   d.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+// Yellow-card bans are counted per competition. LaLiga and Liga F ban for one
+// game at every fifth yellow; UEFA bans at the third, then every second one
+// after that (5th, 7th...), with the slate wiped after the quarter-finals.
+const CARD_RULES = {
+  domestic: { label: "league", next: (n) => (n % 5 === 4 ? n + 1 : null) },
+  uefa: { label: "Champions League", next: (n) => (n === 2 || (n >= 4 && n % 2 === 0) ? n + 1 : null) },
+};
+
 function availability(players, s) {
   const notes = [];
-  const league = s.matches.filter((m) => m.league === team().domestic);
-  const last = league[league.length - 1];
+  const comps = [[team().domestic, CARD_RULES.domestic], ...team().leagues.filter((l) => l.startsWith("uefa")).map((l) => [l, CARD_RULES.uefa])];
   for (const p of players) {
-    const yellows = league.reduce((t, m) => t + (m.players[p.id]?.[4] || 0), 0);
     if (p.injuries?.length) {
       const i = p.injuries[0];
       notes.push(h`<div class="warn"><span class="inj">INJ</span> <b>${p.name}</b>: ${i.detail || i.status || "injured"}${i.back ? h`, back around ${day(new Date(i.back))}` : ""}</div>`);
     }
-    if (last?.players[p.id]?.[5]) notes.push(h`<div class="warn"><b>${p.name}</b> was sent off in the last league game, so most likely misses the next one.</div>`);
-    if (yellows && yellows % 5 === 4) notes.push(h`<div class="warn"><b>${p.name}</b> is on ${yellows} league yellows. One more is a one-match ban.</div>`);
+    for (const [lg, rule] of comps) {
+      if (!lg) continue;
+      const games = s.matches.filter((m) => m.league === lg);
+      const last = games[games.length - 1];
+      if (last?.players[p.id]?.[5]) {
+        notes.push(h`<div class="warn"><b>${p.name}</b> was sent off in the last ${rule.label} game, so he most likely misses the next one.</div>`);
+      }
+      const yellows = games.reduce((t, m) => t + (m.players[p.id]?.[4] || 0), 0);
+      const ban = yellows ? rule.next(yellows) : null;
+      if (ban) notes.push(h`<div class="warn"><b>${p.name}</b> is on ${yellows} ${rule.label} yellows. One more and he's banned for a game.</div>`);
+    }
   }
   return notes;
 }

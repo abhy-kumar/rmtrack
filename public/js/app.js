@@ -1,18 +1,18 @@
 // Router, header and global behaviour.
-import { prefs, savePrefs, applyTheme, hhmm, userTz, inSpain, MADRID, TEAMS, team } from "./core.js?v=11";
-import { startWatching, onLive } from "./alerts.js?v=11";
-import { fillTicker } from "./newsfeed.js?v=11";
-import { home } from "./pages/home.js?v=11";
-import { match } from "./pages/match.js?v=11";
-import { fixtures } from "./pages/fixtures.js?v=11";
-import { news } from "./pages/news.js?v=11";
-import { squad } from "./pages/squad.js?v=11";
-import { player } from "./pages/player.js?v=11";
-import { stats, profile } from "./pages/stats.js?v=11";
-import { about } from "./pages/about.js?v=11";
-import { teamPage } from "./pages/team.js?v=11";
-import { loadKits } from "./kits.js?v=11";
-import { settings } from "./pages/settings.js?v=11";
+import { prefs, savePrefs, applyTheme, hhmm, userTz, inSpain, MADRID, TEAMS, team } from "./core.js?v=12";
+import { startWatching, onLive } from "./alerts.js?v=12";
+import { fillTicker } from "./newsfeed.js?v=12";
+import { home } from "./pages/home.js?v=12";
+import { match } from "./pages/match.js?v=12";
+import { fixtures } from "./pages/fixtures.js?v=12";
+import { news } from "./pages/news.js?v=12";
+import { squad } from "./pages/squad.js?v=12";
+import { player } from "./pages/player.js?v=12";
+import { stats, profile } from "./pages/stats.js?v=12";
+import { about } from "./pages/about.js?v=12";
+import { teamPage } from "./pages/team.js?v=12";
+import { loadKits } from "./kits.js?v=12";
+import { settings } from "./pages/settings.js?v=12";
 
 const main = document.getElementById("main");
 const logo = document.querySelector(".logo");

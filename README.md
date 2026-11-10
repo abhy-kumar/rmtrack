@@ -31,7 +31,7 @@ The toolbar has six sections. Each one has a page number, and typing the number 
 | 100 home | the live match or the next one with a countdown, the last result with its top three ratings, form, what's coming up and a slice of the table |
 | 200 fixtures | upcoming games and results, one row per match, plus calendar export |
 | 300 news | the wires, filtered by how much you trust each source, and the paste box for tweets |
-| 400 squad | the squad by position, injuries and suspension risks, and a workload watch |
+| 400 squad | the squad by position, injuries and suspension risks per competition, and a workload watch |
 | 500 stats | league table, xG table and every player in the competition |
 | 600 settings | team, theme, times, alerts, spoiler mode and news sources |
 
@@ -77,7 +77,7 @@ The weights were fitted against FotMob's ratings for 449 player performances fro
 
 xG is our own model (`app/xg.py`). It looks at distance, the angle of the goal mouth and whether the shot was a header, and runs them through a logistic fit. It starts from values tuned to the usual public xG numbers and is refitted on every stored shot each time the league job runs, so it gets better as the season goes on.
 
-Workload on the squad page comes from match minutes only: the last 7 days against the 3 weeks before, games in the last 14 days and days of rest. It knows nothing about training, so treat it as a guide.
+Workload on the squad page gives each player a load score out of 100. Minutes are weighted by how much his role runs (midfielders and full-backs most, keepers least) and by how involved he is compared with others in the same role, using the commentary lines he appears in. The score adds up four things: volume over the last four weeks, games played on three days' rest or less, a long shift with the next game coming within three days, and a sudden jump in the last week. A player who starts every game climbs to the top, and a sub who gets one start doesn't. It only sees competitive club matches, so training, friendlies and international games are invisible to it.
 
 FBref isn't used. It lost its advanced data in January 2026 and has no API.
 

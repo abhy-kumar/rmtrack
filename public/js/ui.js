@@ -1,6 +1,6 @@
 // Small building blocks shared by every page.
-import { prefs, team, TEAMS, h, html, raw, when, hhmm, day, until, madridToo, comp, MADRID } from "./core.js?v=11";
-import { kit } from "./kits.js?v=11";
+import { prefs, team, TEAMS, h, html, raw, when, hhmm, day, until, madridToo, comp, MADRID } from "./core.js?v=12";
+import { kit } from "./kits.js?v=12";
 
 export const put = (el, v) => { el.innerHTML = html(v); };
 
@@ -69,7 +69,9 @@ export const personLink = (m, side, id, label) => (id ? h`<a href="${personHref(
 export function result(f) {
   const me = isMine(f.home) ? f.home : f.away;
   const them = me === f.home ? f.away : f.home;
-  const a = me.score ?? 0, b = them.score ?? 0;
+  let a = me.score ?? 0, b = them.score ?? 0;
+  // a level cup tie is settled by the shootout
+  if (a === b && me.shootout != null && them.shootout != null) [a, b] = [me.shootout, them.shootout];
   return a > b ? "W" : a < b ? "L" : "D";
 }
 
@@ -140,8 +142,11 @@ export function board(m, { countdown = false } = {}) {
 // compact list of fixtures: who, when, which competition
 export const matchList = (rows) => h`<ul class="mlist">${rows.map((f) => {
   const d = new Date(f.date);
-  const opp = isMine(f.home) ? f.away : f.home;
-  return h`<li><a class="vs" href="#/match/${f.league}/${f.id}">${kit(opp, 16, opp === f.home ? "home" : "away")} ${f.home.abbr} v ${f.away.abbr}</a><span class="when">${day(d)}</span>
+  // our side is a given here, so the line is about the opponent, and the
+  // shirt next to the name is theirs
+  const home = isMine(f.home);
+  const opp = home ? f.away : f.home;
+  return h`<li><a class="vs" href="#/match/${f.league}/${f.id}"><span class="ha">${home ? "v" : "at"}</span>${kit(opp, 16, home ? "away" : "home")}${opp.name}</a><span class="when">${day(d)}</span>
     <span class="cp">${comp(f.league, f.comp)}</span><span class="hm">${hhmm(d)}</span></li>`;
 })}</ul>`;
 
