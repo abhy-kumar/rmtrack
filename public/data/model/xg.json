@@ -1,1 +1,1 @@
-{"coef":[-1.16158,-0.09116,1.3334,-0.56375,-0.10487],"penalty":0.76,"features":["const","dist","angle","head","head_dist"],"source":"fitted","fitted_on":0,"fit_m":{"shots":5305,"goals":570,"xg":570.0,"logloss":0.2959,"at":"2026-11-21T02:27:43+00:00"}}
+{"coef":[-1.13131,-0.0928,1.31359,-0.53667,-0.10606],"penalty":0.76,"features":["const","dist","angle","head","head_dist"],"source":"fitted","fitted_on":0,"fit_m":{"shots":5364,"goals":574,"xg":573.9,"logloss":0.2948,"at":"2026-11-21T19:26:49+00:00"}}
